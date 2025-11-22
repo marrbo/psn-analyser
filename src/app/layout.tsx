@@ -1,17 +1,23 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Orbitron, Rajdhani } from 'next/font/google'
 import './globals.css'
 
-const inter = Inter({ 
+const orbitron = Orbitron({
   subsets: ['latin'],
   display: 'swap',
-  variable: '--font-inter',
+  variable: '--font-orbitron',
+})
+
+const rajdhani = Rajdhani({
+  weight: ['300', '400', '500', '600', '700'],
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-rajdhani',
 })
 
 export const metadata: Metadata = {
-  title: 'PSN Trophy Master - Analise Seus Troféus da PlayStation',
-  description: 'Descubra seus padrões de jogo, analise suas conquistas e eleve seu nível gamer com análises profundas do seu perfil PSN',
-  keywords: 'PSN, PlayStation, troféus, platinas, análise, estatísticas, gaming',
+  title: 'PSN Analyser - Sua Análise de Perfil PlayStation',
+  description: 'Descubra suas estatísticas épicas da PlayStation Network',
 }
 
 export default function RootLayout({
@@ -20,8 +26,15 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="pt-BR" className={inter.variable}>
-      <body className={`${inter.className} antialiased`}>
+    <html lang="pt-BR" className={`${orbitron.variable} ${rajdhani.variable}`}>
+      <head>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+      </head>
+      <body>
+        <div className="background-animation">
+          <div className="particles"></div>
+          <div className="grid-lines"></div>
+        </div>
         {children}
       </body>
     </html>

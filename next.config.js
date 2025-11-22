@@ -1,7 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    
+  },
   images: {
-    domains: ['localhost'],
+    domains: ['via.placeholder.com'],
+    unoptimized: true
   },
 }
 

@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
 
     return response;
   } catch (error) {
+    console.error(error);
     return NextResponse.redirect(`${process.env.FRONTEND_URL}/auth/error`);
   }
 }
