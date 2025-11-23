@@ -137,30 +137,6 @@ export default function Home() {
                   <div className="btn-glow"></div>
                 </button>
               </form>
-
-              <div className="examples">
-                <p>Exemplos populares:</p>
-                <div className="example-tags">
-                  <span 
-                    className="example-tag" 
-                    onClick={() => handleExampleClick('PlayStation')}
-                  >
-                    PlayStation
-                  </span>
-                  <span 
-                    className="example-tag" 
-                    onClick={() => handleExampleClick('Naughty_Dog')}
-                  >
-                    Naughty_Dog
-                  </span>
-                  <span 
-                    className="example-tag" 
-                    onClick={() => handleExampleClick('InsomniacGames')}
-                  >
-                    InsomniacGames
-                  </span>
-                </div>
-              </div>
             </div>
           </section>
 

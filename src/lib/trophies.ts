@@ -1,169 +1,211 @@
-import { makeUniversalSearch, getUserTitles, getTitleTrophies, getUserTrophiesEarnedForTitle } from 'psn-api';
-import { Game, PlayerProfile, Trophy } from '../types/psn';
-import { AnalysisService } from './analysis';
+// src/lib/trophies.ts
+import { getMockProfile } from './mock-data';
+import { PSNAuthService } from './psn-auth';
+
+export class PSNAuth {
+  private authService: PSNAuthService;
+
+  constructor() {
+    this.authService = PSNAuthService.getInstance();
+  }
+
+  public async getToken(): Promise<string> {
+    await this.authService.refreshTokenIfNeeded();
+    const auth = await this.authService.authenticate();
+    const token: string = auth?.accessToken;
+    if (!token) {
+      throw new Error('No PSN authentication token available');
+    }
+    return token;
+  }
+}
 
 export class TrophyService {
-  constructor(private readonly authorization: any) {}
+  private auth: PSNAuth | null;
 
-  async getCompleteProfile(username: string = "me"): Promise<PlayerProfile> {
-    const accountId = await this.getAccountId(username);
-    const games = await this.getAllGamesWithTrophies(accountId);
-    
-    return AnalysisService.analyzeProfile(games, accountId);
+  constructor(auth: PSNAuth | null) {
+    this.auth = auth;
   }
 
-  private async getAccountId(username: string): Promise<string> {
-    try {
-      const searchResults = await makeUniversalSearch(
-        this.authorization,
-        username,
-        "SocialAllAccounts"
-      );
-      
-      return searchResults.domainResponses[0].results[0].socialMetadata.accountId;
-    } catch (error) {
-      throw new Error(`Não foi possível encontrar o usuário: ${username}`);
+  async makeUniversalSearch(searchTerm: string) {
+    if (!this.auth) {
+      throw new Error('Authentication required for PSN API');
     }
-  }
 
-  private async getAllGamesWithTrophies(accountId: string): Promise<Game[]> {
-    const { trophyTitles } = await getUserTitles(this.authorization, accountId);
-    const games: Game[] = [];
+    const token = await this.auth.getToken();
 
-    for (const title of trophyTitles) {
-      try {
-        // Verifica se o jogo tem troféus definidos
-        if (this.hasNoTrophies(title)) {
-          console.log(`Pulando ${title.trophyTitleName} - sem troféus`);
-          continue;
+    const response = await fetch(
+      `https://m.np.playstation.com/api/search/v1/content/universal?query=${encodeURIComponent(searchTerm)}&country=BR&language=pt-BR`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
-
-        const [titleTrophies, earnedTrophies] = await Promise.all([
-          this.getTitleTrophies(title).catch(error => {
-            console.warn(`Erro ao buscar troféus do título ${title.trophyTitleName}:`, error.message);
-            return { trophies: [] };
-          }),
-          this.getUserEarnedTrophies(accountId, title).catch(error => {
-            console.warn(`Erro ao buscar troféus conquistados ${title.trophyTitleName}:`, error.message);
-            return { trophies: [] };
-          })
-        ]);
-
-        // Garante que temos arrays válidos
-        const safeTitleTrophies = Array.isArray(titleTrophies?.trophies) ? titleTrophies.trophies : [];
-        const safeEarnedTrophies = Array.isArray(earnedTrophies?.trophies) ? earnedTrophies.trophies : [];
-
-        const mergedTrophies = this.mergeTrophyLists(safeTitleTrophies, safeEarnedTrophies);
-        
-        games.push({
-          gameName: title.trophyTitleName,
-          platform: title.trophyTitlePlatform,
-          trophyTypeCounts: title.definedTrophies,
-          earnedCounts: title.earnedTrophies,
-          trophyList: mergedTrophies,
-          completionPercentage: this.calculateCompletion(title.earnedTrophies, title.definedTrophies)
-        });
-      } catch (error) {
-        console.error(`Erro crítico ao processar ${title.trophyTitleName}:`, error);
-        continue;
       }
+    );
+
+    if (!response.ok) {
+      throw new Error(`PSN API error: ${response.status} ${response.statusText}`);
     }
 
-    return games;
+    return await response.json();
   }
 
-  private hasNoTrophies(title: any): boolean {
-    const defined = title.definedTrophies;
-    return !defined || 
-           (defined.bronze === 0 && 
-            defined.silver === 0 && 
-            defined.gold === 0 && 
-            defined.platinum === 0);
-  }
-
-  private mergeTrophyLists(
-    titleTrophies: any[] = [], 
-    earnedTrophies: any[] = []
-  ): Trophy[] {
-    const safeTitleTrophies = Array.isArray(titleTrophies) ? titleTrophies : [];
-    const safeEarnedTrophies = Array.isArray(earnedTrophies) ? earnedTrophies : [];
-
-    const mergedTrophies: Trophy[] = [];
-
-    for (const earnedTrophy of safeEarnedTrophies) {
-      try {
-        const foundTitleTrophy = safeTitleTrophies.find(
-          (t: any) => t.trophyId === earnedTrophy.trophyId
-        );
-
-        mergedTrophies.push(
-          this.normalizeTrophy({ ...earnedTrophy, ...foundTitleTrophy })
-        );
-      } catch (error) {
-        console.warn('Erro ao mesclar troféu:', error);
-        continue;
-      }
-    }
-
-    return mergedTrophies;
-  }
-
-  private normalizeTrophy(trophy: any): Trophy {
+  async getCompleteProfile(psnId: string) {
     try {
+      if (!this.auth) {
+        console.log('No authentication available, using mock data');
+        return getMockProfile(psnId);
+      }
+
+      const token = await this.auth.getToken();
+
+      // Tentar buscar dados reais
+      const profileResponse = await fetch(
+        `https://m.np.playstation.com/api/userProfile/v1/internal/users/${psnId}/profiles`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!profileResponse.ok) {
+        throw new Error(`Failed to fetch profile: ${profileResponse.statusText}`);
+      }
+
+      const profileData = await profileResponse.json();
+
+      // Buscar troféus
+      const trophiesResponse = await fetch(
+        `https://m.np.playstation.com/api/trophy/v1/users/${psnId}/titles?fields=@default,trophyCount,earnedTrophies,progress,lastPlayedDateTime&npLanguage=pt-BR`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!trophiesResponse.ok) {
+        throw new Error(`Failed to fetch trophies: ${trophiesResponse.statusText}`);
+      }
+
+      const trophiesData = await trophiesResponse.json();
+
       return {
-        isEarned: trophy.earned ?? false,
-        earnedOn: trophy.earned ? trophy.earnedDateTime : 'unearned',
-        type: trophy.trophyType || 'bronze',
-        rarity: this.getRarityString(trophy.trophyRare ?? 0),
-        earnedRate: Number(trophy.trophyEarnedRate) || 0,
-        trophyName: trophy.trophyName || 'Unknown Trophy',
-        groupId: trophy.trophyGroupId || 'default'
+        accountId: psnId,
+        profile: profileData,
+        games: this.transformGamesData(trophiesData.titles || [])
       };
+
     } catch (error) {
-      console.warn('Erro ao normalizar troféu, retornando padrão:', error);
-      return {
-        isEarned: false,
-        earnedOn: 'unearned',
-        type: 'bronze',
-        rarity: 'Common',
-        earnedRate: 0,
-        trophyName: 'Errored Trophy',
-        groupId: 'error'
-      };
+      console.warn('PSN API failed, using mock data:', error);
+      return getMockProfile(psnId);
     }
   }
 
-  private getRarityString(rarity: number): string {
-    const rarityMap = ['Very Rare', 'Ultra Rare', 'Rare', 'Common'];
-    return rarityMap[rarity] || 'Common';
+
+  private transformGamesData(titles: any[]): Game[] {
+    return titles.map(title => ({
+      title: title.trophyTitleName || 'Unknown',
+      platform: title.trophyTitlePlatform || 'PS4',
+      trophyCount: {
+        bronze: title.definedTrophies?.bronze || 0,
+        silver: title.definedTrophies?.silver || 0,
+        gold: title.definedTrophies?.gold || 0,
+        platinum: title.definedTrophies?.platinum || 0
+      },
+      earnedTrophies: {
+        bronze: title.earnedTrophies?.bronze || 0,
+        silver: title.earnedTrophies?.silver || 0,
+        gold: title.earnedTrophies?.gold || 0,
+        platinum: title.earnedTrophies?.platinum || 0
+      },
+      progress: title.progress || 0,
+      lastPlayed: new Date(title.lastPlayedDateTime || Date.now()),
+      genre: this.determineGenre(title.trophyTitleName),
+      timeToPlatinum: this.calculateTimeToPlatinum(title),
+      metacriticScore: this.getMetacriticScore(title.trophyTitleName),
+      isGoty: this.isGotyGame(title.trophyTitleName),
+      difficulty: this.calculateDifficulty(title),
+      rarity: this.calculateRarity(title)
+    }));
   }
 
-  private calculateCompletion(earned: any, defined: any): number {
-    const totalEarned = earned.bronze + earned.silver + earned.gold + earned.platinum;
-    const totalDefined = defined.bronze + defined.silver + defined.gold + defined.platinum;
-    return totalDefined > 0 ? (totalEarned / totalDefined) * 100 : 0;
+  private determineGenre(gameTitle: string): string {
+    // Lógica para determinar gênero baseado no título
+    const actionKeywords = ['action', 'adventure', 'war', 'battle', 'combat'];
+    const rpgKeywords = ['rpg', 'role', 'fantasy', 'dragon', 'final fantasy'];
+    const platformKeywords = ['platform', 'mario', 'sonic', 'crash'];
+
+    const lowerTitle = gameTitle.toLowerCase();
+
+    if (actionKeywords.some(keyword => lowerTitle.includes(keyword))) {
+      return 'Action/Adventure';
+    } else if (rpgKeywords.some(keyword => lowerTitle.includes(keyword))) {
+      return 'RPG';
+    } else if (platformKeywords.some(keyword => lowerTitle.includes(keyword))) {
+      return 'Platform';
+    }
+
+    return 'Other';
   }
 
-  private async getTitleTrophies(title: any) {
-    return getTitleTrophies(
-      this.authorization,
-      title.npCommunicationId,
-      'all',
-      {
-        npServiceName: title.trophyTitlePlatform.includes('PS5') ? undefined : 'trophy'
-      }
-    );
+  private calculateTimeToPlatinum(title: any): number {
+    // Lógica para estimar tempo para platina
+    const totalTrophies = title.definedTrophies?.bronze + title.definedTrophies?.silver +
+      title.definedTrophies?.gold + title.definedTrophies?.platinum;
+
+    // Estimativa baseada na complexidade
+    if (totalTrophies <= 20) return 20; // Jogos curtos
+    if (totalTrophies <= 40) return 40; // Jogos médios
+    return 80; // Jogos longos
   }
 
-  private async getUserEarnedTrophies(accountId: string, title: any) {
-    return getUserTrophiesEarnedForTitle(
-      this.authorization,
-      accountId,
-      title.npCommunicationId,
-      'all',
-      {
-        npServiceName: title.trophyTitlePlatform.includes('PS5') ? undefined : 'trophy'
-      }
-    );
+  private getMetacriticScore(gameTitle: string): number {
+    // Lógica para obter nota do Metacritic (poderia ser uma API externa)
+    const scores: { [key: string]: number } = {
+      'the last of us': 95,
+      'god of war': 94,
+      'bloodborne': 92,
+      'hollow knight': 90,
+      'persona 5': 93
+    };
+
+    return scores[gameTitle.toLowerCase()] || 75;
+  }
+
+  private isGotyGame(gameTitle: string): boolean {
+    const gotyGames = [
+      'the last of us',
+      'god of war',
+      'bloodborne',
+      'hollow knight',
+      'elden ring'
+    ];
+
+    return gotyGames.some(goty => gameTitle.toLowerCase().includes(goty));
+  }
+
+  private calculateDifficulty(title: any): number {
+    // Lógica para calcular dificuldade baseada na raridade dos troféus
+    const platinumRarity = title.earnedTrophies?.platinum === 0 ? 100 : 50;
+    return Math.max(1, Math.min(10, Math.round(platinumRarity / 10)));
+  }
+
+  private calculateRarity(title: any): number {
+    // Lógica para calcular raridade média
+    return title.earnedTrophies?.platinum === 0 ? 30 : 15;
+  }
+
+  private getMockProfile(psnId: string) {
+    // Retornar dados mockados para desenvolvimento
+    const mockGames = [];
+    return {
+      accountId: psnId,
+      games: mockGames
+    };
   }
 }
