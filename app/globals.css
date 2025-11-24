@@ -1,0 +1,48 @@
+/* app/globals.css */
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+@layer base {
+  body {
+    @apply bg-gray-900 text-white;
+  }
+}
+
+@layer components {
+  .glass-effect {
+    @apply bg-white/5 backdrop-blur-md border border-white/10;
+  }
+}
+
+@layer utilities {
+  .animate-spin-reverse {
+    animation: spin-reverse 1s linear infinite;
+  }
+  
+  @keyframes spin-reverse {
+    from {
+      transform: rotate(360deg);
+    }
+    to {
+      transform: rotate(0deg);
+    }
+  }
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-800;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gradient-to-b from-cyan-500 to-purple-500 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply from-cyan-400 to-purple-400;
+}

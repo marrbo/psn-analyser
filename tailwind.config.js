@@ -1,3 +1,4 @@
+// tailwind.config.js
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
@@ -7,13 +8,12 @@ module.exports = {
   ],
   theme: {
     extend: {
-      colors: {
-        gray: {
-          900: '#0f0f0f',
-          800: '#1a1a1a',
-          700: '#2d2d2d',
-          600: '#404040',
-        }
+      animation: {
+        'pulse-slow': 'pulse 3s linear infinite',
+        'bounce-slow': 'bounce 2s infinite',
+      },
+      backdropBlur: {
+        xs: '2px',
       }
     },
   },
