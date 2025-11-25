@@ -331,7 +331,6 @@ function isGotyGame(gameTitle: string): GotyMatchResult {
   };
 }
 
-// Função para obter estatísticas GOTY
 function getGotyStats(games: any[]): {
   totalGotyGames: number;
   gotyGames: Array<GotyGame & { userGame: any }>;
@@ -340,17 +339,26 @@ function getGotyStats(games: any[]): {
 } {
   const gotyGames: Array<GotyGame & { userGame: any }> = [];
   const byYear: { [year: number]: number } = {};
-  
+  const addedTitles = new Set<string>(); // Para evitar duplicatas
+
   games.forEach(game => {
     const match = isGotyGame(game.title);
     if (match.isGoty && match.gameData) {
-      gotyGames.push({
-        ...match.gameData,
-        userGame: game
-      });
+      // Verificar se o jogo já foi adicionado (evitar duplicatas)
+      const gameAlreadyAdded = gotyGames.some(gotyGame => 
+        gotyGame.titulo === match.gameData!.titulo
+      );
       
-      const year = match.gameData.ano_premiacao;
-      byYear[year] = (byYear[year] || 0) + 1;
+      if (!gameAlreadyAdded) {
+        gotyGames.push({
+          ...match.gameData,
+          userGame: game
+        });
+        
+        // Estatísticas por ano
+        const year = match.gameData.ano_premiacao;
+        byYear[year] = (byYear[year] || 0) + 1;
+      }
     }
   });
   
@@ -395,12 +403,25 @@ export class PSNTrophyService {
       // Calcular estatísticas GOTY
       const gotyStats = getGotyStats(games);
       
+      // Gerar análise completa
+      const analysis = this.generateAnalysis(trophySummary, games, gotyStats);
+      
+      console.log('✅ Dados processados:', {
+        trophySummary: !!trophySummary,
+        gamesCount: games.length,
+        gotyStats: !!gotyStats,
+        analysis: !!analysis,
+        migueScore: analysis.migueScore,
+        platinumGames: analysis.platinumGames
+      });
+      
+      // Retornar estrutura plana (não aninhada)
       return {
         accountId,
         trophySummary,
         games,
         gotyStats,
-        analysis: this.generateAnalysis(trophySummary, games, gotyStats)
+        analysis // Este campo contém as métricas calculadas
       };
     } catch (error) {
       console.error('💥 Erro ao buscar perfil:', error);
@@ -582,18 +603,22 @@ export class PSNTrophyService {
   }
 
   private generateAnalysis(trophySummary: TrophySummary, games: any[], gotyStats: any) {
-    const completedGames = games.filter(game => game.completionPercentage === 100).length;
-    const platinumGames = games.filter(game => game.hasPlatinum).length;
-    const rareGames = games.filter(game => game.isRare).length;
-    const highDifficultyGames = games.filter(game => game.isHighDifficulty).length;
+    // Garantir que games seja um array
+    const safeGames = Array.isArray(games) ? games : [];
+    
+    const completedGames = safeGames.filter(game => game && game.completionPercentage === 100).length;
+    const platinumGames = safeGames.filter(game => game && game.hasPlatinum).length;
+    const rareGames = safeGames.filter(game => game && game.isRare).length;
+    const highDifficultyGames = safeGames.filter(game => game && game.isHighDifficulty).length;
     
     // Calcular score Mi Mi Mi baseado em múltiplos fatores
     const migueScore = this.calculateMigueScore({
-      trophyLevel: trophySummary.trophyLevel,
+      trophyLevel: trophySummary.trophyLevel || 1,
       platinumCount: platinumGames,
-      completionRate: (completedGames / games.length) * 100,
+      totalGames: games.length,
+      completionRate: safeGames.length > 0 ? (completedGames / safeGames.length) * 100 : 0,
       rareGamesCount: rareGames,
-      gotyGames: gotyStats.totalGotyGames,
+      gotyGames: gotyStats?.totalGotyGames || 0,
       highDifficultyGames: highDifficultyGames
     });
 
@@ -603,14 +628,16 @@ export class PSNTrophyService {
       platinumGames,
       rareGames,
       highDifficultyGames,
-      totalGames: games.length,
-      completionRate: (completedGames / games.length) * 100
+      gotyStats,
+      totalGames: safeGames.length,
+      completionRate: safeGames.length > 0 ? (completedGames / safeGames.length) * 100 : 0
     };
   }
 
   private calculateMigueScore(factors: {
     trophyLevel: number;
     platinumCount: number;
+    totalGames: number;
     completionRate: number;
     rareGamesCount: number;
     gotyGames: number;
@@ -619,32 +646,33 @@ export class PSNTrophyService {
     const {
       trophyLevel,
       platinumCount,
+      totalGames,
       completionRate,
       rareGamesCount,
       gotyGames,
       highDifficultyGames
     } = factors;
 
-    // Fórmula otimizada para calcular score Mi Mi Mi
     let score = 0;
-    
+
     // Level de troféus (máx 20 pontos)
     score += Math.min(trophyLevel * 2, 20);
-    
-    // Platinas (máx 25 pontos)
-    score += Math.min(platinumCount * 1.5, 25);
-    
-    // Taxa de completude (máx 20 pontos)
-    score += Math.min(completionRate * 0.2, 20);
-    
-    // Jogos raros (máx 15 pontos)
-    score += Math.min(rareGamesCount * 3, 15);
-    
-    // Jogos GOTY (máx 10 pontos)
-    score += Math.min(gotyGames * 2, 10);
-    
-    // Jogos de alta dificuldade (máx 10 pontos)
-    score += Math.min(highDifficultyGames * 2, 10);
+
+    // 1. PLATINAS (30 pontos): Taxa de platinas = (platinas conquistadas ÷ total de jogos) × 100
+    const platinumRate = (platinumCount / totalGames) * 100;
+    score += Math.min(platinumRate, 100) * 0.3; // 30 pontos no máximo
+
+    // 2. COMPLETUDE (20 pontos): % de completude média do perfil × 0.2
+    score += Math.min(completionRate, 100) * 0.2;
+
+    // 3. PLATINAS RARAS (20 pontos): Platinas com raridade < 20% no PSN (cada = 2 pontos)
+    score += Math.min(rareGamesCount * 2, 20);
+
+    // 4. JOGOS GOTY (15 pontos): Jogos que ganharam Game of The Year (cada = 3 pontos)
+    score += Math.min(gotyGames * 3, 15);
+
+    // 5. ALTA DIFICULDADE (15 pontos): Jogos com dificuldade 7/10+ (cada = 2 pontos)
+    score += Math.min(highDifficultyGames * 2, 15);
 
     return Math.min(Math.round(score), 100);
   }
@@ -669,18 +697,25 @@ export class PSNTrophyService {
 
   private determineGenre(gameTitle: string): string {
     const lowerTitle = gameTitle.toLowerCase();
-    
-    const genreMap: { [key: string]: string[] } = {
-      'Sports': ['fifa', 'nba', 'mlb', 'pga', 'ufc', 'wwe', 'madden', 'nhl'],
-      'Shooter': ['call of duty', 'battlefield', 'destiny', 'doom', 'wolfenstein', 'overwatch'],
-      'Racing': ['gran turismo', 'need for speed', 'driveclub', 'wreckfest', 'dirt'],
-      'RPG': ['final fantasy', 'persona', 'witcher', 'elden ring', 'dragon quest', 'mass effect', 'skyrim'],
-      'Platform': ['crash', 'spyro', 'ratchet', 'jak', 'sackboy', 'littlebigplanet'],
-      'Action/Adventure': ['uncharted', 'tomb raider', 'assassin', 'horizon', 'spider-man', 'god of war', 'last of us'],
-      'Fighting': ['street fighter', 'tekken', 'mortal kombat', 'guilty gear', 'soulcalibur']
+
+    // Mapeamento de palavras-chave para gêneros baseado na taxonomia
+    const genreKeywords: { [key: string]: string[] } = {
+      'Platform': ['crash', 'spyro', 'ratchet', 'jak', 'sackboy', 'littlebigplanet', 'mario', 'donkey kong', 'celeste', 'hollow knight'],
+      'FPS': ['call of duty', 'battlefield', 'destiny', 'doom', 'wolfenstein', 'overwatch', 'counter-strike', 'halo', 'far cry'],
+      'TPS': ['grand theft auto', 'red dead redemption', 'uncharted', 'tomb raider', 'the last of us', 'gears of war'],
+      'Fighting': ['street fighter', 'tekken', 'mortal kombat', 'guilty gear', 'soulcalibur', 'super smash bros', 'dragon ball fighterz'],
+      'Action-Adventure': ['assassin\'s creed', 'batman: arkham', 'horizon', 'spider-man', 'god of war', 'the legend of zelda', 'metroid', 'castlevania'],
+      'RPG': ['final fantasy', 'persona', 'witcher', 'elden ring', 'dragon quest', 'mass effect', 'skyrim', 'fallout', 'dark souls', 'bloodborne', 'diablo', 'borderlands'],
+      'Sports': ['fifa', 'nba', 'mlb', 'pga', 'ufc', 'wwe', 'madden', 'nhl', 'pro evolution soccer', 'rocket league'],
+      'Racing': ['gran turismo', 'need for speed', 'driveclub', 'wreckfest', 'dirt', 'forza', 'burnout', 'mario kart'],
+      'Strategy': ['civilization', 'xcom', 'fire emblem', 'star craft', 'age of empires', 'total war', 'hearthstone'],
+      'Simulation': ['the sims', 'simcity', 'farming simulator', 'euro truck simulator', 'flight simulator', 'animal crossing'],
+      'Puzzle': ['tetris', 'candy crush', 'bejeweled', 'portal', 'the witness', 'professor layton'],
+      'Horror': ['resident evil', 'silent hill', 'dead space', 'outlast', 'amnesia', 'the evil within'],
+      'Indie': ['stardew valley', 'minecraft', 'terraria', 'undertale', 'cuphead', 'among us']
     };
 
-    for (const [genre, keywords] of Object.entries(genreMap)) {
+    for (const [genre, keywords] of Object.entries(genreKeywords)) {
       if (keywords.some(keyword => lowerTitle.includes(keyword))) {
         return genre;
       }

@@ -8,7 +8,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "docker:dev": "docker-compose up --build",
+    "docker:prod": "docker build -t psn-analyser . && docker run -p 3000:3000 psn-analyser",
+    "docker:down": "docker-compose down",
+    "db:init": "tsx scripts/init-db.ts",
+    "db:health": "tsx scripts/check-health.ts",
+    "db:cleanup": "tsx scripts/cleanup-analyses.ts"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.17",
@@ -16,6 +22,7 @@
     "chart.js": "^4.5.1",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.294.0",
+    "mongodb": "^7.0.0",
     "next": "^16.0.3",
     "next-auth": "^4.24.13",
     "psn-api": "^2.16.0",
@@ -25,19 +32,20 @@
     "tailwindcss": "^3.4.18"
   },
   "devDependencies": {
+    "@types/mongodb": "^4.0.7",
     "@types/node": "^20.19.25",
     "@types/react": "^18.3.27",
     "@types/react-dom": "^18.3.7",
     "autoprefixer": "^10.4.22",
+    "chart.js": "^4.4.0",
     "concurrently": "^9.2.1",
     "eslint": "^9.39.1",
     "eslint-config-next": "14.0.0",
-    "postcss": "^8.5.6",
-    "typescript": "^5.9.3",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
     "next": "14.0.0",
-    "chart.js": "^4.4.0",
-    "react-chartjs-2": "^5.2.0"
+    "postcss": "^8.5.6",
+    "react": "^18.2.0",
+    "react-chartjs-2": "^5.2.0",
+    "react-dom": "^18.2.0",
+    "typescript": "^5.9.3"
   }
 }

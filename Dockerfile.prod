@@ -1,0 +1,50 @@
+# Dockerfile
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+# Copiar package.json
+COPY package*.json ./
+COPY tsconfig.json ./
+
+# Instalar dependências
+RUN npm ci --only=production && npm cache clean --force
+
+# Copiar código fonte
+COPY . .
+
+# Build da aplicação
+RUN npm run build
+
+# Estágio de produção
+FROM node:18-alpine AS runner
+
+WORKDIR /app
+
+# Criar usuário não-root
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copiar build e dependências
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/next.config.js ./
+COPY --from=builder /app/tsconfig.json ./
+
+# Mudar proprietário dos arquivos
+RUN chown -R nextjs:nodejs /app
+
+# Mudar para usuário não-root
+USER nextjs
+
+# Expor porta
+EXPOSE 3000
+
+# Variáveis de ambiente
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+# Comando de produção
+CMD ["npm", "start"]

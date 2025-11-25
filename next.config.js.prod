@@ -1,0 +1,18 @@
+// next.config.js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  experimental: {
+    serverComponentsExternalPackages: ['mongodb'],
+  },
+  output: 'standalone',
+  images: {
+    domains: ['image.api.playstation.com', 'assets.nintendo.com', 'cdn.cloudflare.steamstatic.com'],
+    unoptimized: true, // Para Vercel
+  },
+  env: {
+    MONGODB_URI: process.env.MONGODB_URI,
+    MONGODB_DB: process.env.MONGODB_DB || 'psn_analyser',
+  },
+}
+
+module.exports = nextConfig
