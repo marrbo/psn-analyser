@@ -180,7 +180,7 @@ export default function Dashboard({ data, onNewAnalysis }: DashboardProps) {
           <div className="glass-effect rounded-2xl p-6 border border-blue-500/20">
             <h3 className="text-xl font-bold text-white mb-4 text-center">Taxa de Completude</h3>
             <div className="flex justify-center h-20">
-              <ProgressRing progress={Math.round(analysisData.completionRate).toPrecision(2) || 0} size={80} />
+              <ProgressRing progress={analysisData.completionRate.toPrecision(2) || 0} size={80} />
             </div>
             <div className="text-center text-gray-400 mt-2">
               {analysisData.completedGames || 0} jogos 100%
