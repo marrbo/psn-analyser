@@ -30,6 +30,14 @@
   }
 }
 
+.h-40 {
+  height: 12rem;
+}
+
+.object-cover-custom {
+    object-fit: scale-down;
+}
+
 /* Scrollbar personalizada */
 ::-webkit-scrollbar {
   width: 8px;

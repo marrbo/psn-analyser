@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     console.log(`🔍 Iniciando análise para: ${username}`);
 
     // Converter username para accountId
-    console.log(`🔄 Convertendo username para accountId: ${username}`);
+    console.log(`🔄 Convertendo psnId: ${username}`);
     const accountId = await convertUsernameToAccountId(username);
     
     if (!accountId) {
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     // Buscar dados do PSN (nova análise)
     const trophyService = new PSNTrophyService();
-    console.log(`🎮 Buscando dados do PSN...`);
+    console.log(`🎮 Buscando dados da PSN...`);
     
     const analysisData = await trophyService.getCompleteProfile(accountId);
     console.log(`✅ Dados do PSN coletados com sucesso`);

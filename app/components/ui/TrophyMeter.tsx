@@ -45,7 +45,7 @@ export default function TrophyMeter({ data }: TrophyMeterProps) {
 
   return (
     <div className="space-y-6">
-      {levels.map((level, index) => {
+      {/* {levels.map((level, index) => {
         const progress = level.total > 0 ? (level.count / level.total) * 100 : 0;
         return (
           <div key={level.name} className="space-y-2">
@@ -61,17 +61,17 @@ export default function TrophyMeter({ data }: TrophyMeterProps) {
             </div>
           </div>
         );
-      })}
+      })} */}
       
-      <div className="mt-8 p-4 bg-gradient-to-r from-purple-500/20 to-cyan-500/20 rounded-lg border border-cyan-500/30">
-        <div className="text-center">
+      {/* <div className="mt-8 p-4 bg-gradient-to-r from-purple-500/20 to-cyan-500/20 rounded-lg border border-cyan-500/30"> */}
+        <div className="text-center cols-2">
           <div className="text-cyan-400 text-sm mb-1">Total de Troféus</div>
-          <div className="text-2xl font-bold text-white">{totalTrophies}</div>
-          <div className="text-gray-400 text-sm mt-1">
-            {earnedTrophies.platinum} 🏆 • {earnedTrophies.gold} 🥇 • {earnedTrophies.silver} 🥈 • {earnedTrophies.bronze} 🥉
+          <div className="text-4xl font-bold text-white mb-6">{totalTrophies}</div>
+          <div className="text-gray-400 text-2xl mb-2">
+            {totalTrophies} • {earnedTrophies.platinum} 🏆 • {earnedTrophies.gold} 🥇 • {earnedTrophies.silver} 🥈 • {earnedTrophies.bronze} 🥉
           </div>
         </div>
       </div>
-    </div>
+    // </div>
   );
 }

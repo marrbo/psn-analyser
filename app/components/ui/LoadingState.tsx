@@ -11,7 +11,7 @@ interface LoadingStateProps {
 export default function LoadingState({ title, subtitle, currentStep, progress }: LoadingStateProps) {
   const steps = [
     'Conectando ao servidor...',
-    'Convertendo username para AccountID...',
+    'Convertendo psnId...',
     'Buscando dados do PSN...',
     'Processando troféus...',
     'Calculando estatísticas...',
@@ -19,7 +19,7 @@ export default function LoadingState({ title, subtitle, currentStep, progress }:
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-t from-gray-900 via-yellow-900 to-gray-900 flex items-center justify-center">
       <div className="glass-effect rounded-2xl p-8 max-w-md w-full mx-4 border border-cyan-500/20">
         <div className="text-center">
           {/* Spinner animado */}

@@ -6,6 +6,9 @@ import StatCard from './ui/StatCard';
 import GenreChart from './charts/GenreChart';
 import ProgressRing from './ui/ProgressRing';
 import TrophyMeter from './ui/TrophyMeter';
+import Link from 'next/link';
+import { Game } from '@/mongodb';
+import { TrophyTitle } from 'psn-api';
 
 interface DashboardProps {
   data: any;
@@ -83,7 +86,7 @@ export default function Dashboard({ data, onNewAnalysis }: DashboardProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900">
+    <div className="min-h-screen bg-gradient-to-t from-gray-900 via-yellow-900 to-gray-900">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-12">
@@ -161,15 +164,15 @@ export default function Dashboard({ data, onNewAnalysis }: DashboardProps) {
         {/* Estatísticas Principais */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <div className="glass-effect rounded-2xl p-6 border border-purple-500/20">
-            <h3 className="text-xl font-bold text-white mb-4 text-center">Total de Jogos</h3>
-            <div className="text-5xl font-bold text-center text-purple-400">
+            <h3 className="text-xl font-bold text-white mb-8 text-center">Total de Jogos</h3>
+            <div className="text-6xl font-bold text-center text-purple-400">
               {analysisData.totalGames || games.length || 0}
             </div>
           </div>
 
           <div className="glass-effect rounded-2xl p-6 border border-green-500/20">
-            <h3 className="text-xl font-bold text-white mb-4 text-center">Platinas</h3>
-            <div className="text-5xl font-bold text-center text-green-400">
+            <h3 className="text-xl font-bold text-white mb-8 text-center">Platinas</h3>
+            <div className="text-6xl font-bold text-center text-green-400 mb-6">
               {analysisData.platinumGames || 0}
             </div>
             <div className="text-center text-gray-400 mt-2">
@@ -178,8 +181,8 @@ export default function Dashboard({ data, onNewAnalysis }: DashboardProps) {
           </div>
 
           <div className="glass-effect rounded-2xl p-6 border border-blue-500/20">
-            <h3 className="text-xl font-bold text-white mb-4 text-center">Taxa de Completude</h3>
-            <div className="flex justify-center h-20">
+            <h3 className="text-xl font-bold text-white mb-12 text-center">Taxa de Completude</h3>
+            <div className="flex justify-center h-8 mb-8">
               <ProgressRing progress={analysisData.completionRate.toPrecision(2) || 0} size={80} />
             </div>
             <div className="text-center text-gray-400 mt-2">
@@ -189,8 +192,8 @@ export default function Dashboard({ data, onNewAnalysis }: DashboardProps) {
         </div>
 
         {/* Gráficos */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-          <div className="glass-effect rounded-2xl p-6 border border-cyan-500/20">
+        <div className="grid grid-cols-1 xl:grid-cols-1 gap-8">
+          {/* <div className="glass-effect rounded-2xl p-6 border border-cyan-500/20">
             <h3 className="text-2xl font-bold text-white mb-6 text-center">
               Análise por Gênero
             </h3>
@@ -204,7 +207,7 @@ export default function Dashboard({ data, onNewAnalysis }: DashboardProps) {
                 </div>
               </div>
             )}
-          </div>
+          </div> */}
 
           <div className="glass-effect rounded-2xl p-6 border border-yellow-500/20">
             <h3 className="text-2xl font-bold text-white mb-6 text-center">
@@ -247,17 +250,23 @@ export default function Dashboard({ data, onNewAnalysis }: DashboardProps) {
         {gotyStats.gotyGames && gotyStats.gotyGames.length > 0 && (
           <div className="mt-8 glass-effect rounded-2xl p-6 border border-purple-500/20">
             <h3 className="text-2xl font-bold text-white mb-6 text-center">
-              🏆 Jogos Game of The Year
+              🎮 Jogos GOTY - Game of The Year
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {gotyStats.gotyGames.slice(0, 6).map((gotyGame: any, index: number) => (
-                <div key={index} className="bg-gray-800/50 rounded-lg p-4 border border-purple-500/20">
+              {gotyStats.gotyGames.slice(0, 6).map((gotyGame: any) => (
+                <div key={gotyGame.id} className="bg-gray-800/50 rounded-lg p-4 border border-purple-500/20">
                   <div className="flex items-center gap-3">
-                    <div className="text-2xl">🏆</div>
+                    <div className="text-2xl">
+                      <img
+                        src={gotyGame.imagem_capa}
+                        alt={gotyGame.title}
+                        className="w-full h-20 object-cover-custom group-hover:scale-110 transition-transform duration-300"
+                      />
+                    </div>
                     <div>
                       <h4 className="font-bold text-white">{gotyGame.titulo}</h4>
                       <p className="text-sm text-gray-400">
-                        {gotyGame.ano_premiacao} • {gotyGame.desenvolvedora}
+                        {gotyGame.ano_premiacao} • {gotyGame.desenvolvedora} • Metacritic: {gotyGame.metacritic_score}/100
                       </p>
                       <p className="text-sm text-cyan-400">
                         Completude: {gotyGame.userGame?.completionPercentage || 0}%
@@ -276,6 +285,49 @@ export default function Dashboard({ data, onNewAnalysis }: DashboardProps) {
             )}
           </div>
         )}
+
+        {/* Biblioteca de Jogos */}
+        <div className="mt-8 glass-effect rounded-2xl p-6 border border-blue-500/20">
+          <h3 className="text-2xl font-bold text-white mb-6 text-center">
+            📚 Biblioteca de Jogos
+          </h3>
+          <div className="text-center">
+            <Link 
+              href={`/games?analysisId=${data.analysisId}&accountId=${data.accountId}`}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-green-500 rounded-lg font-bold text-white hover:scale-105 transition-transform"
+            >
+              <span>🎮 Ver Todos os Jogos</span>
+              <span className="text-blue-200">({games.length})</span>
+            </Link>
+          </div>
+          
+          {/* Preview dos primeiros 6 jogos */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-6">
+            {games.slice(0, 6).map((game: TrophyTitle) => (
+              <Link
+                key={game.npCommunicationId}
+                href={`/games/${game.npCommunicationId}?accountId=${data.accountId}`}
+                className="group"
+              >
+                <div className="aspect-square relative rounded-lg overflow-hidden border-2 border-blue-500/30 group-hover:border-blue-400/50 transition-all">
+                  <img
+                    src={game.trophyTitleIconUrl}
+                    alt={game.trophyTitleName}
+                    className="w-full h-full object-cover-custom group-hover:scale-110 transition-transform duration-300"
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+                    <div className="text-white text-xs font-semibold truncate">
+                      {game.trophyTitleName}
+                    </div>
+                    <div className="text-green-400 text-xs">
+                      {game.progress}%
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
 
         {/* Informações de Debug (apenas desenvolvimento) */}
         {process.env.NODE_ENV === 'development' && (

@@ -44,6 +44,52 @@ export interface AnalysisData {
   games: any[];
 }
 
+// lib/mongodb.ts - Adicione estas coleções
+export interface Game {
+  _id?: ObjectId;
+  npCommunicationId: string;
+  trophySetVersion: string;
+  title: string;
+  iconUrl: string;
+  platform: string;
+  definedTrophies: {
+    bronze: number;
+    silver: number;
+    gold: number;
+    platinum: number;
+  };
+  genres: string[];
+  firstReleased: Date | null;
+  lastUpdated: Date;
+}
+
+export interface Trophy {
+  _id?: ObjectId;
+  npCommunicationId: string;
+  trophyId: number;
+  trophyGroup: string;
+  name: string;
+  detail: string;
+  iconUrl: string;
+  type: 'bronze' | 'silver' | 'gold' | 'platinum';
+  rarity: number; // Percentual de jogadores que conquistaram (0-100)
+  earnedRate: number;
+  hidden: boolean;
+  trophyRare: number; // 0-5 scale da PSN
+  lastUpdated: Date;
+}
+
+export interface UserTrophy {
+  _id?: ObjectId;
+  accountId: string;
+  npCommunicationId: string;
+  trophyId: number;
+  earned: boolean;
+  earnedDateTime: Date | null;
+  progress: number; // Para troféus progressivos
+  lastUpdated: Date;
+}
+
 // Cache de 60 minutos
 const CACHE_DURATION = 60 * 60 * 1000; // 60 minutos em milissegundos
 

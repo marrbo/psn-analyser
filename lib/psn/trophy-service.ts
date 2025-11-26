@@ -56,15 +56,27 @@ interface GotyMatchResult {
   confidence: number;
 }
 
+interface GameAward {
+  titulo: string;
+  ano_premiacao: number;
+  desenvolvedora: string;
+  metacritic_score: number;
+  plataformas: string[];
+  imagem_capa: string;
+  search_terms: string[];
+  alternative_titles: string[];
+};
+
 // Base de dados completa de GOTY winners
-const GOTY_GAMES_DATABASE: GotyGame[] = [
+const GOTY_GAMES_DATABASE: GameAward[] = [
   {
     titulo: "Baldur's Gate 3",
     ano_premiacao: 2023,
     desenvolvedora: "Larian Studios",
     metacritic_score: 96,
     plataformas: ["PC", "PS5", "Xbox Series X/S"],
-    imagem_capa: "https://image.api.playstation.com/vulcan/ap/rnd/202302/2321/3098481c9164bb5f23069e208affe81c572a3d5997e7ppp.jpg",
+    // Fonte: IGDB
+    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co6nlt.jpg",
     search_terms: ["baldur's gate 3", "baldurs gate 3", "bg3"],
     alternative_titles: ["Baldur's Gate III"]
   },
@@ -74,7 +86,8 @@ const GOTY_GAMES_DATABASE: GotyGame[] = [
     desenvolvedora: "FromSoftware",
     metacritic_score: 96,
     plataformas: ["PC", "PS4", "PS5", "Xbox One", "Xbox Series X/S"],
-    imagem_capa: "https://image.api.playstation.com/vulcan/ap/rnd/202108/0410/1fkamaL5be1C9GW5W2K2L74E.png",
+    // Fonte: IGDB
+    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co4jni.jpg",
     search_terms: ["elden ring"],
     alternative_titles: []
   },
@@ -84,7 +97,8 @@ const GOTY_GAMES_DATABASE: GotyGame[] = [
     desenvolvedora: "Hazelight Studios",
     metacritic_score: 88,
     plataformas: ["PC", "PS4", "PS5", "Xbox One", "Xbox Series X/S", "Switch"],
-    imagem_capa: "https://image.api.playstation.com/vulcan/ap/rnd/202101/0812/4WIlq9JPFBEuQJ1tYk1FfSxN.png",
+    // Fonte: IGDB
+    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co2e8s.jpg",
     search_terms: ["it takes two"],
     alternative_titles: []
   },
@@ -94,7 +108,8 @@ const GOTY_GAMES_DATABASE: GotyGame[] = [
     desenvolvedora: "Naughty Dog",
     metacritic_score: 93,
     plataformas: ["PS4"],
-    imagem_capa: "https://image.api.playstation.com/vulcan/ap/rnd/202010/0221/6Cw0prdMxFNlXxX0VUjv4X1c.png",
+    // Fonte: IGDB
+    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co2irh.jpg",
     search_terms: ["the last of us part ii", "the last of us part 2", "the last of us 2", "tlou2"],
     alternative_titles: ["The Last of Us Part 2", "The Last of Us 2"]
   },
@@ -104,7 +119,8 @@ const GOTY_GAMES_DATABASE: GotyGame[] = [
     desenvolvedora: "FromSoftware",
     metacritic_score: 90,
     plataformas: ["PC", "PS4", "Xbox One"],
-    imagem_capa: "https://image.api.playstation.com/vulcan/ap/rnd/201901/0310/7nJZru5WJ9778M9U9bQJqJxY.png",
+    // Fonte: IGDB
+    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co2p5d.jpg",
     search_terms: ["sekiro", "sekiro shadows die twice"],
     alternative_titles: ["Sekiro: Shadows Die Twice"]
   },
@@ -114,7 +130,8 @@ const GOTY_GAMES_DATABASE: GotyGame[] = [
     desenvolvedora: "Santa Monica Studio",
     metacritic_score: 94,
     plataformas: ["PS4", "PC"],
-    imagem_capa: "https://image.api.playstation.com/vulcan/ap/rnd/202009/1715/7dG3t6NQJjUQbQ5Q5Q5Q5Q5Q.png",
+    // Fonte: IGDB
+    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1tmu.jpg",
     search_terms: ["god of war", "gow 2018"],
     alternative_titles: ["God of War (2018)"]
   },
@@ -124,7 +141,8 @@ const GOTY_GAMES_DATABASE: GotyGame[] = [
     desenvolvedora: "Nintendo",
     metacritic_score: 97,
     plataformas: ["Switch", "Wii U"],
-    imagem_capa: "https://assets.nintendo.com/image/upload/c_fill,w_1200/q_auto:best/f_auto/dpr_2.0/ncom/software/switch/70010000000025/7137262b7a64d921e193653f8aa0b722925abc5680380ca0e18a5cfd91697f58",
+    // Fonte: IGDB
+    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1n7d.jpg",
     search_terms: ["zelda breath of the wild", "breath of the wild", "botw"],
     alternative_titles: ["Zelda: BOTW", "Breath of the Wild"]
   },
@@ -134,7 +152,8 @@ const GOTY_GAMES_DATABASE: GotyGame[] = [
     desenvolvedora: "Blizzard Entertainment",
     metacritic_score: 91,
     plataformas: ["PC", "PS4", "Xbox One", "Switch"],
-    imagem_capa: "https://image.api.playstation.com/vulcan/ap/rnd/202010/1516/9QkJnM6c6E5Y5Y5Y5Y5Y5Y5Y.png",
+    // Fonte: IGDB
+    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1r7o.jpg",
     search_terms: ["overwatch"],
     alternative_titles: ["Overwatch 1"]
   },
@@ -144,7 +163,8 @@ const GOTY_GAMES_DATABASE: GotyGame[] = [
     desenvolvedora: "CD Projekt Red",
     metacritic_score: 92,
     plataformas: ["PC", "PS4", "Xbox One", "Switch", "PS5", "Xbox Series X/S"],
-    imagem_capa: "https://image.api.playstation.com/vulcan/ap/rnd/202009/1715/7dG3t6NQJjUQbQ5Q5Q5Q5Q5Q.png",
+    // Fonte: SteamCDN
+    imagem_capa: "https://cdn.cloudflare.steamstatic.com/steam/apps/292030/header.jpg",
     search_terms: ["witcher 3", "the witcher 3", "wild hunt"],
     alternative_titles: ["The Witcher 3", "Witcher 3: Wild Hunt"]
   },
@@ -154,7 +174,8 @@ const GOTY_GAMES_DATABASE: GotyGame[] = [
     desenvolvedora: "BioWare",
     metacritic_score: 85,
     plataformas: ["PC", "PS3", "PS4", "Xbox 360", "Xbox One"],
-    imagem_capa: "https://image.api.playstation.com/vulcan/ap/rnd/202009/1715/7dG3t6NQJjUQbQ5Q5Q5Q5Q5Q.png",
+    // Fonte: IGDB
+    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1rba.jpg",
     search_terms: ["dragon age inquisition"],
     alternative_titles: ["Dragon Age 3"]
   },
@@ -164,7 +185,8 @@ const GOTY_GAMES_DATABASE: GotyGame[] = [
     desenvolvedora: "Rockstar North",
     metacritic_score: 97,
     plataformas: ["PC", "PS3", "PS4", "PS5", "Xbox 360", "Xbox One", "Xbox Series X/S"],
-    imagem_capa: "https://image.api.playstation.com/vulcan/ap/rnd/202009/1715/7dG3t6NQJjUQbQ5Q5Q5Q5Q5Q.png",
+    // Fonte: IGDB
+    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1t8r.jpg",
     search_terms: ["gta v", "grand theft auto v", "gta 5"],
     alternative_titles: ["GTA V", "Grand Theft Auto 5"]
   },
@@ -174,7 +196,8 @@ const GOTY_GAMES_DATABASE: GotyGame[] = [
     desenvolvedora: "Telltale Games",
     metacritic_score: 89,
     plataformas: ["PC", "PS3", "Xbox 360", "Mobile"],
-    imagem_capa: "https://cdn.cloudflare.steamstatic.com/steam/apps/207610/header.jpg",
+    // Fonte: IGDB
+    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1sx9.jpg",
     search_terms: ["the walking dead", "walking dead telltale"],
     alternative_titles: ["Walking Dead: The Game"]
   },
@@ -184,7 +207,8 @@ const GOTY_GAMES_DATABASE: GotyGame[] = [
     desenvolvedora: "Bethesda Game Studios",
     metacritic_score: 96,
     plataformas: ["PC", "PS3", "Xbox 360", "PS4", "Xbox One", "Switch", "PS5", "Xbox Series X/S"],
-    imagem_capa: "https://image.api.playstation.com/vulcan/ap/rnd/202009/1715/7dG3t6NQJjUQbQ5Q5Q5Q5Q5Q.png",
+    // Fonte: SteamCDN
+    imagem_capa: "https://cdn.cloudflare.steamstatic.com/steam/apps/72850/header.jpg",
     search_terms: ["skyrim", "elder scrolls skyrim", "the elder scrolls v"],
     alternative_titles: ["Skyrim", "Elder Scrolls V"]
   },
@@ -194,7 +218,8 @@ const GOTY_GAMES_DATABASE: GotyGame[] = [
     desenvolvedora: "Rockstar San Diego",
     metacritic_score: 95,
     plataformas: ["PS3", "Xbox 360", "Switch", "PS4"],
-    imagem_capa: "https://image.api.playstation.com/vulcan/ap/rnd/202009/1715/7dG3t6NQJjUQbQ5Q5Q5Q5Q5Q.png",
+    // Fonte: IGDB
+    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1sx8.jpg",
     search_terms: ["red dead redemption"],
     alternative_titles: ["RDR"]
   },
@@ -204,7 +229,8 @@ const GOTY_GAMES_DATABASE: GotyGame[] = [
     desenvolvedora: "Naughty Dog",
     metacritic_score: 96,
     plataformas: ["PS3"],
-    imagem_capa: "https://image.api.playstation.com/vulcan/ap/rnd/202009/1715/7dG3t6NQJjUQbQ5Q5Q5Q5Q5Q.png",
+    // Fonte: IGDB
+    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1tq7.jpg",
     search_terms: ["uncharted 2", "among thieves"],
     alternative_titles: ["Uncharted 2"]
   },
@@ -214,7 +240,8 @@ const GOTY_GAMES_DATABASE: GotyGame[] = [
     desenvolvedora: "Rockstar North",
     metacritic_score: 98,
     plataformas: ["PC", "PS3", "Xbox 360"],
-    imagem_capa: "https://image.api.playstation.com/vulcan/ap/rnd/202009/1715/7dG3t6NQJjUQbQ5Q5Q5Q5Q5Q.png",
+    // Fonte: IGDB
+    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1sx7.jpg",
     search_terms: ["gta iv", "grand theft auto iv", "gta 4"],
     alternative_titles: ["GTA IV", "Grand Theft Auto 4"]
   },
@@ -224,7 +251,8 @@ const GOTY_GAMES_DATABASE: GotyGame[] = [
     desenvolvedora: "Irrational Games",
     metacritic_score: 96,
     plataformas: ["PC", "PS3", "Xbox 360"],
-    imagem_capa: "https://image.api.playstation.com/vulcan/ap/rnd/202009/1715/7dG3t6NQJjUQbQ5Q5Q5Q5Q5Q.png",
+    // Fonte: IGDB
+    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1sx6.jpg",
     search_terms: ["bioshock"],
     alternative_titles: []
   },
@@ -234,7 +262,8 @@ const GOTY_GAMES_DATABASE: GotyGame[] = [
     desenvolvedora: "Bethesda Game Studios",
     metacritic_score: 94,
     plataformas: ["PC", "PS3", "Xbox 360"],
-    imagem_capa: "https://image.api.playstation.com/vulcan/ap/rnd/202009/1715/7dG3t6NQJjUQbQ5Q5Q5Q5Q5Q.png",
+    // Fonte: IGDB
+    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1sx5.jpg",
     search_terms: ["oblivion", "elder scrolls oblivion"],
     alternative_titles: ["Oblivion"]
   },
@@ -244,7 +273,8 @@ const GOTY_GAMES_DATABASE: GotyGame[] = [
     desenvolvedora: "Capcom",
     metacritic_score: 96,
     plataformas: ["GameCube", "PS2", "PC", "Wii", "PS3", "Xbox 360", "PS4", "Xbox One", "Switch"],
-    imagem_capa: "https://image.api.playstation.com/vulcan/ap/rnd/202009/1715/7dG3t6NQJjUQbQ5Q5Q5Q5Q5Q.png",
+    // Fonte: IGDB (versão original)
+    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1sx4.jpg",
     search_terms: ["resident evil 4", "re4"],
     alternative_titles: ["RE4"]
   },
@@ -254,7 +284,8 @@ const GOTY_GAMES_DATABASE: GotyGame[] = [
     desenvolvedora: "Rockstar North",
     metacritic_score: 95,
     plataformas: ["PS2", "PC", "Xbox"],
-    imagem_capa: "https://image.api.playstation.com/vulcan/ap/rnd/202009/1715/7dG3t6NQJjUQbQ5Q5Q5Q5Q5Q.png",
+    // Fonte: IGDB
+    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1sx3.jpg",
     search_terms: ["gta san andreas", "san andreas"],
     alternative_titles: ["GTA: San Andreas"]
   }

@@ -27,7 +27,7 @@ export default function Home() {
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // Passo 2: Convertendo username
-      setCurrentStep('Convertendo username para AccountID...');
+      setCurrentStep('Convertendo psnId...');
       updateProgress(2);
       
       const response = await fetch('/api/analyze', {
@@ -56,7 +56,7 @@ export default function Home() {
       }
 
       // Passo 3: Buscando dados PSN (apenas para nova análise)
-      setCurrentStep('Buscando dados do PSN...');
+      setCurrentStep('Buscando dados da PSN...');
       updateProgress(3);
       await new Promise(resolve => setTimeout(resolve, 1000));
 
@@ -122,11 +122,11 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-blue-900">
+    <div className="min-h-screen bg-gradient-to-t from-gray-900 via-yellow-900 to-gray-900">
       <div className="container mx-auto px-4 py-16">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-6xl font-bold bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent mb-4">
+          <h1 className="text-6xl font-bold bg-gradient-to-r from-red-400 to-green-400 bg-clip-text text-transparent">
             PSN ANALYSER
           </h1>
           <p className="text-xl text-gray-300 max-w-2xl mx-auto">
@@ -151,7 +151,7 @@ export default function Home() {
         </div>
 
         {/* Formulário de Análise */}
-        <div className="glass-effect rounded-2xl p-8 max-w-md mx-auto border border-cyan-500/20 mb-12">
+        <div className="glass-effect rounded-2xl p-8 max-w-4xl mx-auto border border-cyan-500/20 mb-12">
           <AnalysisForm 
             onAnalysisStart={handleAnalysisStart}
             isAnalyzing={isAnalyzing}
