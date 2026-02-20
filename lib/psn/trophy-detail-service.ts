@@ -1,46 +1,23 @@
 // lib/psn/trophy-detail-service.ts
 import { PSNAuth } from './auth';
-import { connectToDatabase } from '../../mongodb';
-
-interface TrophyGroup {
-  trophyGroupId: string;
-  trophyGroupName: string;
-  trophyGroupIconUrl: string;
-  definedTrophies: {
-    bronze: number;
-    silver: number;
-    gold: number;
-    platinum: number;
-  };
-}
-
-interface TrophyDetail {
-  trophyId: number;
-  trophyHidden: boolean;
-  trophyType: 'bronze' | 'silver' | 'gold' | 'platinum';
-  trophyName: string;
-  trophyDetail: string;
-  trophyIconUrl: string;
-  trophyRare: number;
-  trophyEarnedRate: number;
-  earned: boolean;
-  earnedDateTime?: string;
-  progress?: number;
-  trophyProgressTarget?: number;
-}
+import { connectToDatabase } from '../mongodb';
+import { TrophyGroup, TrophyDetail, RarityStats, DefinedTrophies } from '../../types/trophies';
+import { CacheService } from './cache-service';
+import { PSNUser } from '@/types/psn';
 
 export class PSNAuthTrophyDetailService {
-  private auth: PSNAuth;
+  private readonly auth: PSNAuth;
 
   constructor() {
     this.auth = new PSNAuth();
   }
 
-  async getGameTrophyGroups(npCommunicationId: string): Promise<TrophyGroup[]> {
-    const token = await this.auth.getToken();
-    
-    const response = await fetch(
-      `https://m.np.playstation.com/api/trophy/v1/npCommunicationIds/${npCommunicationId}/trophyGroups`,
+  async getGameTrophyGroups(npCommunicationId: string, needExtraParams: boolean = false): Promise<TrophyGroup[]> {
+    const token = await this.auth.getAccessToken();
+    const extraParams = '?npServiceName=trophy';
+
+    let response = await fetch(
+      `https://m.np.playstation.com/api/trophy/v1/npCommunicationIds/${npCommunicationId}/trophyGroups${needExtraParams ? extraParams : ''}`,
       {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -48,6 +25,10 @@ export class PSNAuthTrophyDetailService {
         }
       }
     );
+
+    if (!response.ok && response.status === 404) {
+      return this.getGameTrophyGroups(npCommunicationId, true);
+    }
 
     if (!response.ok) {
       throw new Error(`Erro ao buscar grupos de troféus: ${response.status}`);
@@ -57,11 +38,13 @@ export class PSNAuthTrophyDetailService {
     return data.trophyGroups || [];
   }
 
-  async getUserTrophiesForGame(accountId: string, npCommunicationId: string, trophyGroupId: string = 'default'): Promise<TrophyDetail[]> {
-    const token = await this.auth.getToken();
-    
+  async getUserTrophiesForGame(accountId: string, npCommunicationId: string, trophyGroupId: string = 'default', needExtraParams: boolean = false): Promise<TrophyDetail[]> {
+    const token = await this.auth.getAccessToken();
+    const extraParams = '?npServiceName=trophy&limit=500';
+    // corrigido
+
     const response = await fetch(
-      `https://m.np.playstation.com/api/trophy/v1/users/${accountId}/npCommunicationIds/${npCommunicationId}/trophyGroups/${trophyGroupId}/trophies`,
+      `https://m.np.playstation.com/api/trophy/v1/users/${accountId}/npCommunicationIds/${npCommunicationId}/trophyGroups/${trophyGroupId}/trophies${needExtraParams ? extraParams : ''}`,
       {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -70,7 +53,10 @@ export class PSNAuthTrophyDetailService {
       }
     );
 
-    if (!response.ok) {
+    if (!response.ok && response.status === 404) {
+      return this.getUserTrophiesForGame(accountId, npCommunicationId, trophyGroupId, true);
+    }
+    else if (!response.ok) {
       throw new Error(`Erro ao buscar troféus do usuário: ${response.status}`);
     }
 
@@ -78,11 +64,14 @@ export class PSNAuthTrophyDetailService {
     return data.trophies || [];
   }
 
-  async getGameTrophies(npCommunicationId: string, trophyGroupId: string = 'default'): Promise<TrophyDetail[]> {
-    const token = await this.auth.getToken();
-    
+  async getGameTrophies(npCommunicationId: string, trophyGroupId: string = 'default', needExtraParams: boolean = false): Promise<TrophyDetail[]> {
+    const token = await this.auth.getAccessToken();
+    const extraParams = '?npServiceName=trophy';
+
+    //corrigido
+
     const response = await fetch(
-      `https://m.np.playstation.com/api/trophy/v1/npCommunicationIds/${npCommunicationId}/trophyGroups/${trophyGroupId}/trophies`,
+      `https://m.np.playstation.com/api/trophy/v1/npCommunicationIds/${npCommunicationId}/trophyGroups/${trophyGroupId}/trophies${needExtraParams ? extraParams : ''}`,
       {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -91,8 +80,10 @@ export class PSNAuthTrophyDetailService {
       }
     );
 
-    if (!response.ok) {
-      throw new Error(`Erro ao buscar troféus do jogo: ${response.status}`);
+    if (!response.ok && response.status === 404) {
+      return this.getGameTrophies(npCommunicationId, trophyGroupId, true);
+    } else if (!response.ok) {
+      throw new Error(`Erro ao buscar troféus do jogo: ${npCommunicationId}, http.status: ${response.status}`);
     }
 
     const data = await response.json();
@@ -184,8 +175,8 @@ export class TrophyCacheService {
 
 // Serviço principal de análise de raridade
 export class TrophyRarityService {
-  private detailService: PSNAuthTrophyDetailService;
-  private cacheService: TrophyCacheService;
+  private readonly detailService: PSNAuthTrophyDetailService;
+  private readonly cacheService: TrophyCacheService;
 
   constructor() {
     this.detailService = new PSNAuthTrophyDetailService();
@@ -193,39 +184,51 @@ export class TrophyRarityService {
   }
 
   async analyzeGameRarity(accountId: string, npCommunicationId: string, gameTitle: string) {
-    console.log(`🎯 Analisando raridade do jogo: ${gameTitle}`);
+    console.log(`🎯 Analisando raridade do jogo: ${npCommunicationId}`);
 
     try {
       // Verificar cache primeiro
       const cachedGame = await this.cacheService.getCachedGame(npCommunicationId);
-      const cachedTrophies = await this.cacheService.getCachedTrophies(npCommunicationId);
-      const cachedUserTrophies = await this.cacheService.getUserTrophies(accountId, npCommunicationId);
+      //const cachedTrophies = await this.cacheService.getCachedTrophies(npCommunicationId);
+      //const cachedUserTrophies = await this.cacheService.getUserTrophies(accountId, npCommunicationId);
+      const lastUpdated = new Date();
+      const trophiesWithGroup: TrophyGroup[] = [];
 
-      let gameTrophies = cachedTrophies;
-      let userTrophies = cachedUserTrophies;
+      let gameTrophies = [];
+      let userTrophies = [];
+      let trophyGroups: TrophyGroup[] = [];
 
       // Se não tem cache, buscar da API
-      if (!cachedGame || gameTrophies.length === 0) {
-        console.log(`🔄 Buscando dados da PSN para: ${gameTitle}`);
+      if (!cachedGame) {
+        console.log(`🔄 Buscando dados da PSN para: ${npCommunicationId}`);
         
         // Buscar grupos de troféus
-        const trophyGroups = await this.detailService.getGameTrophyGroups(npCommunicationId);
+        trophyGroups = await this.detailService.getGameTrophyGroups(npCommunicationId);
         
-        // Buscar troféus de cada grupo
         gameTrophies = [];
+
+        // Buscar troféus de cada grupo
         for (const group of trophyGroups) {
+          console.log(`🔄 Buscando troféus do grupo: ID: ${group.trophyGroupId}, Name: ${group.trophyGroupName}`);
+
           const groupTrophies = await this.detailService.getGameTrophies(npCommunicationId, group.trophyGroupId);
-          const trophiesWithGroup = groupTrophies.map(trophy => ({
-            ...trophy,
-            npCommunicationId,
-            trophyGroup: group.trophyGroupId,
-            trophyGroupName: group.trophyGroupName
-          }));
-          gameTrophies.push(...trophiesWithGroup);
+          
+          gameTrophies.push({
+              trophyGroupId: group.trophyGroupId,
+              trophyGroupName: group.trophyGroupName,
+              trophyGroupIconUrl: group.trophyGroupIconUrl,
+              definedTrophies: group.definedTrophies,
+              trophies: groupTrophies,
+              lastUpdated: lastUpdated
+          });
         }
 
         // Cache dos troféus do jogo
         await this.cacheService.cacheTrophies(gameTrophies);
+
+        gameTitle = gameTrophies[0].trophyGroupName;
+
+        const definedTrophies = this.calculateDefinedTrophies(gameTrophies);
 
         // Cache do jogo
         await this.cacheService.cacheGame({
@@ -233,45 +236,74 @@ export class TrophyRarityService {
           title: gameTitle,
           trophySetVersion: '01.00', // Você pode obter isso da API principal
           platform: 'PS4/PS5', // Você pode obter isso da API principal
-          definedTrophies: this.calculateDefinedTrophies(gameTrophies),
+          definedTrophies: definedTrophies,
+          trophies: gameTrophies,
           genres: [],
           firstReleased: null,
-          lastUpdated: new Date()
+          lastUpdated: lastUpdated
         });
       }
+
+      const psnUser: PSNUser | null = await new CacheService(accountId, 'users').getItem<PSNUser>();
+
+      const rarityStats: RarityStats = {
+        totalEarned: 0,
+        totalTrophies: 0,
+        earnedTrophies: {
+          bronze: 0,
+          silver: 0,
+          gold: 0,
+          platinum: 0
+        },
+        completionPercentage: 0,
+        trophyGroups: [],
+        gameName: gameTitle,
+        psnUser: psnUser
+      };
 
       // Buscar troféus do usuário se não tem cache
       if (userTrophies.length === 0) {
         console.log(`🔄 Buscando troféus do usuário para: ${gameTitle}`);
         
-        const trophyGroups = await this.detailService.getGameTrophyGroups(npCommunicationId);
+        if (gameTrophies.length === 0) {
+          gameTrophies = await this.detailService.getGameTrophyGroups(npCommunicationId);
+        }
+        
         userTrophies = [];
 
-        for (const group of trophyGroups) {
+        for (const group of gameTrophies) {
           const userGroupTrophies = await this.detailService.getUserTrophiesForGame(
             accountId, 
             npCommunicationId, 
             group.trophyGroupId
           );
-          
-          const userTrophiesWithMeta = userGroupTrophies.map(trophy => ({
+
+          const userTrophiesWithMeta: TrophyGroup = ({
             accountId,
             npCommunicationId,
-            trophyId: trophy.trophyId,
-            earned: trophy.earned,
-            earnedDateTime: trophy.earnedDateTime ? new Date(trophy.earnedDateTime) : null,
-            progress: trophy.progress || 0,
-            lastUpdated: new Date()
-          }));
+            trophyGroupId: group.trophyGroupId,
+            trophyGroupName: group.trophyGroupName,
+            trophyGroupIconUrl: group.trophyGroupIconUrl,
+            definedTrophies: group.definedTrophies,
+            userTrophies: [...userGroupTrophies],
+            lastUpdated: lastUpdated
+          });
 
-          userTrophies.push(...userTrophiesWithMeta);
+          userTrophies.push(userTrophiesWithMeta);
+
+          const stats = this.calculateRarityStats(userTrophiesWithMeta, userGroupTrophies);
+
+          rarityStats.totalEarned += stats.totalEarned;
+          rarityStats.totalTrophies += stats.totalTrophies;
+          rarityStats.trophyGroups.push(stats.trophyGroups[0]);
         }
 
         await this.cacheService.cacheUserTrophies(userTrophies);
       }
-
+      
       // Calcular estatísticas de raridade
-      return this.calculateRarityStats(gameTrophies, userTrophies);
+      rarityStats.completionPercentage = rarityStats.totalTrophies > 0 ? (rarityStats.totalEarned / rarityStats.totalTrophies) * 100 : 0;
+      return rarityStats;
 
     } catch (error) {
       console.error(`💥 Erro ao analisar raridade de ${gameTitle}:`, error);
@@ -279,55 +311,76 @@ export class TrophyRarityService {
     }
   }
 
-  private calculateDefinedTrophies(trophies: any[]) {
-    return trophies.reduce((acc, trophy) => {
-      acc[trophy.trophyType] = (acc[trophy.trophyType] || 0) + 1;
-      return acc;
-    }, { bronze: 0, silver: 0, gold: 0, platinum: 0 });
+  private calculateDefinedTrophies(trophies: TrophyGroup[]) {
+    return trophies.flatMap<DefinedTrophies>(group => Object.values(group.definedTrophies));
   }
 
-  private calculateRarityStats(gameTrophies: any[], userTrophies: any[]) {
-    const earnedTrophyIds = new Set(
-      userTrophies
-        .filter(t => t.earned)
-        .map(t => t.trophyId)
-    );
+  private calculateRarityStats(gameTrophies: TrophyGroup, userTrophies: TrophyDetail[]): RarityStats {
+    const earnedTrophyIds = userTrophies.filter(t => t.earned).map(t => t.trophyId);
 
-    const rarityStats = {
-      common: { count: 0, trophies: [] as any[] },
-      uncommon: { count: 0, trophies: [] as any[] },
-      rare: { count: 0, trophies: [] as any[] },
-      epic: { count: 0, trophies: [] as any[] },
-      legendary: { count: 0, trophies: [] as any[] },
+    const rarityStats: RarityStats = {
       totalEarned: 0,
-      totalTrophies: gameTrophies.length,
-      completionPercentage: 0
+      totalTrophies: 0,
+      earnedTrophies: {
+        bronze: 0,
+        silver: 0,
+        gold: 0,
+        platinum: 0
+      },
+      completionPercentage: 0,
+      trophyGroups: [],
+      gameName: gameTrophies.trophyGroupName
     };
 
-    gameTrophies.forEach(trophy => {
-      const earned = earnedTrophyIds.has(trophy.trophyId);
-      const rarity = this.classifyRarity(trophy.trophyEarnedRate);
+    for (const trophy of userTrophies) {
+      trophy.earned = earnedTrophyIds.includes(trophy.trophyId);
 
-      if (earned) {
-        rarityStats[rarity].count++;
-        rarityStats[rarity].trophies.push(trophy);
+      if (trophy.earned) {
         rarityStats.totalEarned++;
       }
-    });
 
-    rarityStats.completionPercentage = gameTrophies.length > 0 
-      ? (rarityStats.totalEarned / gameTrophies.length) * 100 
+      rarityStats.totalTrophies++;
+      const index = gameTrophies.userTrophies.findIndex(t => t.trophyId === trophy.trophyId );
+
+      if (index < 0) {
+        gameTrophies.trophies.push({
+          trophyId: trophy.trophyId,
+          trophyHidden: trophy.trophyHidden,
+          trophyType: trophy.trophyType,
+          trophyName: trophy.trophyName,
+          trophyDetail: trophy.trophyDetail,
+          trophyIconUrl: trophy.trophyIconUrl,
+          trophyRare: trophy.trophyRare,
+          trophyEarnedRate: trophy.trophyEarnedRate,
+          earned: trophy.earned,
+          earnedDateTime: trophy.earnedDateTime,
+          progress: trophy.progress,
+          trophyProgressTarget: trophy.trophyProgressTarget
+        });
+      } else {
+        gameTrophies.trophies[index].trophyId = trophy.trophyId;
+        gameTrophies.trophies[index].trophyHidden = trophy.trophyHidden;
+        gameTrophies.trophies[index].trophyType = trophy.trophyType;
+        gameTrophies.trophies[index].trophyName = trophy.trophyName;
+        gameTrophies.trophies[index].trophyDetail = trophy.trophyDetail;
+        gameTrophies.trophies[index].trophyIconUrl = trophy.trophyIconUrl;
+        gameTrophies.trophies[index].trophyRare = trophy.trophyRare;
+        gameTrophies.trophies[index].trophyEarnedRate = trophy.trophyEarnedRate;
+        gameTrophies.trophies[index].earned = trophy.earned;
+        gameTrophies.trophies[index].earnedDateTime = trophy.earnedDateTime;
+        gameTrophies.trophies[index].progress = trophy.progress;
+        gameTrophies.trophies[index].trophyProgressTarget = trophy.trophyProgressTarget;
+      }
+    }
+
+    // TODO: Buscar da API percentual de conclusão do game
+    rarityStats.completionPercentage = gameTrophies.userTrophies.length > 0 
+      ? (rarityStats.totalEarned / gameTrophies.userTrophies.length) * 100 
       : 0;
 
-    return rarityStats;
-  }
+    rarityStats.trophyGroups.push(gameTrophies);
 
-  private classifyRarity(earnedRate: number): string {
-    if (earnedRate >= 50) return 'common';
-    if (earnedRate >= 25) return 'uncommon';
-    if (earnedRate >= 10) return 'rare';
-    if (earnedRate >= 5) return 'epic';
-    return 'legendary';
+    return rarityStats;
   }
 
   async getUserOverallRarity(accountId: string, games: any[]) {

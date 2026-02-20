@@ -32,7 +32,7 @@ async function migrateData() {
               accountId: analysis.accountId,
               username: analysis.username,
               createdAt: analysis.createdAt,
-              expiresAt: analysis.expiresAt,
+              renewAt: analysis.renewAt,
               lastAccessed: analysis.lastAccessed,
               // Adicionar campos da análise no nível raiz
               trophySummary: nestedData.trophySummary,

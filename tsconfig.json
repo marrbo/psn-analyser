@@ -1,10 +1,10 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "ES2017",
     "lib": [
       "dom",
       "dom.iterable",
-      "es6"
+      "ESNext"
     ],
     "allowJs": true,
     "skipLibCheck": true,
@@ -24,12 +24,7 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./src/*",
-        "lib/*",
-        "types/*",
-        "./src/utils/*",
-      ]
+      "@/*": ["./*"]
     }
   },
   "include": [
@@ -39,7 +34,5 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }

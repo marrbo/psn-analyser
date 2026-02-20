@@ -1,23 +1,63 @@
 // app/components/ui/ProgressRing.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { DefinedTrophies } from '@/types/trophies';
+import { text } from 'node:stream/consumers';
+import { useRef, useEffect, useState } from 'react';
+import { FaTrophy } from 'react-icons/fa';
 
 interface ProgressRingProps {
   progress: number;
+  earned?: DefinedTrophies;
+  total?: number;
   size?: number;
+  hideValue?: boolean;
+  textSize?: number;
+  onlyText?: boolean;
+  showTrophy?: boolean;
+  fillColor?: string;
 }
 
-export default function ProgressRing({ progress, size = 100 }: ProgressRingProps) {
-  const [offset, setOffset] = useState(0);
-  const strokeWidth = 8;
+export default function ProgressRing({ 
+    progress = 0, 
+    earned = { bronze: 0, silver: 0, gold: 0, platinum: 0 }, 
+    total = 0, 
+    size = 100, 
+    hideValue = false, 
+    textSize = 12,
+    onlyText = false,
+    showTrophy = false,
+    fillColor = 'transparent',
+   }: ProgressRingProps) {
+
+  const [progressOffset, setProgressOffset] = useState(0);
+  const progressOffsetRef = useRef(progressOffset);
+  const strokeWidth = 6;
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
+  const totalEarned = earned.bronze + earned.silver + earned.gold + earned?.platinum || 0;
+  const textSizeClass = `text-[${textSize}pt]`;
+  const textSmallSClass = `text-[${textSize - 5 }pt]`;
+  const sizeTrophy = ((10 / size) * 0.5 * 100).toPrecision(1); // Ajusta o tamanho do troféu proporcionalmente ao tamanho do anel
+  const trophySize = `w-${sizeTrophy} h-${sizeTrophy}`;
+  console.log('trophySize:', trophySize);
 
   useEffect(() => {
-    const progressOffset = circumference - (progress / 100) * circumference;
-    setOffset(progressOffset);
+    progressOffsetRef.current = circumference - (progress / 100) * circumference;
+    setProgressOffset(progressOffsetRef.current);
   }, [progress, circumference]);
+
+  if (onlyText) {
+    return (
+    <>
+      <div className={`text-center -mt-1 grid grid-rows-2 ${progress >= 100 ? 'text-green-500' : progress >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+        <span className={`${hideValue ? 'hidden' : ''} ${textSizeClass} font-bold`}>{progress}
+          <span className="inline-block align-baseline text-xs">%</span>
+        </span>
+        <span className={`text-xs lg:text-lg -mt-1`}>{totalEarned}/{total}</span>
+      </div>
+    </>)
+  };
 
   return (
     <div className="relative inline-flex items-center justify-center">
@@ -29,7 +69,7 @@ export default function ProgressRing({ progress, size = 100 }: ProgressRingProps
           stroke="currentColor"
           strokeWidth={strokeWidth}
           fill="transparent"
-          className="text-gray-700"
+          className="text-gray-700/70"
         />
         <circle
           cx={size / 2}
@@ -37,15 +77,25 @@ export default function ProgressRing({ progress, size = 100 }: ProgressRingProps
           r={radius}
           stroke="currentColor"
           strokeWidth={strokeWidth}
-          fill="transparent"
+          fill={fillColor}
           strokeDasharray={circumference}
-          strokeDashoffset={offset}
+          strokeDashoffset={progressOffset}
           strokeLinecap="round"
-          className="text-blue-500 transition-all duration-1000 ease-out"
+          className={`transition-all duration-1000 ease-out`}
         />
       </svg>
-      <div className="absolute text-center">
-        <span className="text-2xl font-bold text-white">{progress}%</span>
+      <div className="absolute text-center items-center flex flex-row grid grid-rows-2 line">
+        {showTrophy ? (
+          <div className='w-full flex items-center justify-center'>
+            <FaTrophy className={`${trophySize}`}/>
+          </div>
+        ) 
+        : (
+          <span className={`${hideValue ? 'hidden' : ''} ${textSizeClass} font-bold text-white`}>{progress}
+            <span className={`text-xs inline-block align-baseline text-gray-300`}>%</span>
+          </span>
+        )}
+        <span className={`${textSmallSClass} text-gray-400 mt-1`}>{totalEarned}/{total}</span>
       </div>
     </div>
   );

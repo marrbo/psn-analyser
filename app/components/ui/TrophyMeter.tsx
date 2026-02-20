@@ -1,77 +1,141 @@
 // app/components/ui/TrophyMeter.tsx
 'use client';
 
-interface TrophyMeterProps {
-  data: {
-    earnedTrophies: {
-      bronze: number;
-      silver: number;
-      gold: number;
-      platinum: number;
-    };
-    totalTrophies: number;
-  };
-}
+import Image from "next/image";
 
-export default function TrophyMeter({ data }: TrophyMeterProps) {
-  const { earnedTrophies, totalTrophies } = data;
+export default function TrophyMeter({
+  data, 
+  hideTotal = false, 
+  showEarned = false, 
+  hideLevel = false, 
+  hidePlatinum = false, 
+  showOnlyPsnLevel = false, 
+  space = '5',
+  size = 'sm'}) {
+  if (!data) {
+    data = {
+      earnedTrophies: {
+          bronze: 0,
+          silver: 0,
+          gold: 0,
+          platinum: 0,
+        },
+      definedTrophies: {
+        bronze: 0,
+        silver: 0,
+        gold: 0,
+        platinum: 0,
+      },
+      totalEarned: 0,
+      totalTrophies: 0,
+      completionPercentage: 0,
+      trophyGroups: [],
+      gameName: '',
+      hideLevel: true
+    }
+  }
 
   const levels = [
     { 
-      name: 'Bronze', 
-      color: 'from-yellow-800 to-yellow-600',
-      count: earnedTrophies.bronze,
-      total: totalTrophies
+      name: 'platinum', 
+      color: `text-cyan-400`,
+      count: data.earnedTrophies?.platinum || 0,
+      total: data.definedTrophies?.platinum || 0,
+      img: '/platinum.png'
     },
     { 
-      name: 'Prata', 
-      color: 'from-gray-400 to-gray-300',
-      count: earnedTrophies.silver,
-      total: totalTrophies
+      name: 'gold', 
+      color: 'text-yellow-500',
+      count: data.earnedTrophies?.gold || 0,
+      total: data.definedTrophies?.gold || 0,
+      img: '/gold.png'
     },
     { 
-      name: 'Ouro', 
-      color: 'from-yellow-400 to-yellow-200',
-      count: earnedTrophies.gold,
-      total: totalTrophies
+      name: 'silver', 
+      color: 'text-gray-300',
+      count: data.earnedTrophies?.silver || 0,
+      total: data.definedTrophies?.silver || 0,
+      img: '/silver.png'
     },
     { 
-      name: 'Platina', 
-      color: 'from-cyan-400 to-blue-500',
-      count: earnedTrophies.platinum,
-      total: totalTrophies
-    },
+      name: 'bronze', 
+      color: 'text-yellow-600',
+      count: data.earnedTrophies?.bronze || 0,
+      total: data.definedTrophies?.bronze || 0,
+      img: '/bronze.png'
+    }
   ];
 
+  const levelHidePlatinum = levels.filter((level) => level.name !== 'platinum');
+  const actualLevels = hidePlatinum ? levelHidePlatinum : levels;
+
+
+  const psnLevels: {
+    [key: number]: { color: string },
+  } = {
+    0: { color: 'text-yellow-800' },
+    100: { color: 'text-yellow-800' },
+    200: { color: 'text-yellow-800' },
+    300: { color: 'text-gray-300' },
+    400: { color: 'text-gray-300' },
+    500: { color: 'text-gray-300' }, 
+    600: { color: 'text-yellow-400' },
+    700: { color: 'text-yellow-400' },
+    800: { color: 'text-yellow-400' },
+    900: { color: 'text-yellow-400' },
+    999: { color: 'text-cyan-400' }
+  };
+
+  const minSpace = 'min-w-' + space;
+  const divSquare = 'text-center flex justify-between items-center vertical-center px-0 pb-0 pl-0 ml-1';
+
+  const levelPsn = data?.psnLevel === 999 ? data?.psnLevel : Math.floor(data?.psnLevel / 100) * 100;
+            
+  const totalnew = levels.reduce((acc, level) => acc + level.count, 0);
+  const total = data?.definedTrophies ? data?.definedTrophies.bronze + data?.definedTrophies.silver + data?.definedTrophies.gold + data?.definedTrophies.platinum : 0;
+  hideTotal = showOnlyPsnLevel ? true : hideTotal;
+
   return (
-    <div className="space-y-6">
-      {/* {levels.map((level, index) => {
-        const progress = level.total > 0 ? (level.count / level.total) * 100 : 0;
-        return (
-          <div key={level.name} className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-white font-medium">{level.name}</span>
-              <span className="text-gray-400">{level.count} ({progress.toFixed(1)}%)</span>
-            </div>
-            <div className="h-4 bg-gray-700 rounded-full overflow-hidden">
-              <div
-                className={`h-full bg-gradient-to-r ${level.color} rounded-full transition-all duration-1000 ease-out`}
-                style={{ width: `${progress}%` }}
-              />
-            </div>
+      <div className={`lg:min-w-22 ${divSquare}`}>
+        <div className={`flex items-center gap-3 text-${size} w-full select-none drop-shadow-xs text-shadow-black text-shadow-2xs`}>
+          {/* TOTAL */}
+          <div className={`${hideTotal ? 'hidden' : ''} font-medium text-white flex items-center mr-1` }>
+            <Image 
+                src='/total.png' 
+                alt={`trophy-level-total`}
+                width={20}
+                height={20} 
+                className="mr-2 w-5.5 inline-block"/>
+              <span className={`${totalnew < 9999 || showEarned ? 'w-10' : 'w-auto'} ${minSpace} text-left text-${size}`}>
+                { showEarned && (`${totalnew.toLocaleString('pt-BR')}/`)}
+                {(total === 0 ? totalnew : total).toLocaleString('pt-BR')}
+              </span>
           </div>
-        );
-      })} */}
-      
-      {/* <div className="mt-8 p-4 bg-gradient-to-r from-purple-500/20 to-cyan-500/20 rounded-lg border border-cyan-500/30"> */}
-        <div className="text-center cols-2">
-          <div className="text-cyan-400 text-sm mb-1">Total de Troféus</div>
-          <div className="text-4xl font-bold text-white mb-6">{totalTrophies}</div>
-          <div className="text-gray-400 text-2xl mb-2">
-            {totalTrophies} • {earnedTrophies.platinum} 🏆 • {earnedTrophies.gold} 🥇 • {earnedTrophies.silver} 🥈 • {earnedTrophies.bronze} 🥉
+          {!showOnlyPsnLevel && (
+            actualLevels.map((level) => (
+              <div key={level.name} className={`${divSquare} `}>
+                <div className={`font-medium ${level.color} flex items-center` }>
+                  <Image 
+                    src={level.img} 
+                    alt={`trophy-level-${level.name}`}
+                    width={20}
+                    height={20} 
+                    className="w-4 mr-1 inline-block"/>
+                  <span className={`text-${size} ${minSpace} text-left ${level.count < 1000 ? 'w-auto' : ''}`}>
+                    {(level.count).toLocaleString('pt-BR')}
+                    { showEarned && (<span className={`text-${size}`}>/{(level.total).toLocaleString('pt-BR')}</span>)}
+                  </span>
+
+                </div>
+              </div>
+            ))
+          )}
+          {/* PSN LEVEL */}
+          <div className={`${hideLevel ? 'hidden' : ''} font-medium ml-5 min-w-20 flex items-center`}>
+            <div className={`level-sprite level-${levelPsn} mr-1`}></div>
+            <span className={`font-bold text-${size} ${psnLevels[levelPsn || 100].color}`}>{data?.psnLevel}</span>
           </div>
         </div>
       </div>
-    // </div>
-  );
+    );
 }
