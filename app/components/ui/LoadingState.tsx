@@ -19,7 +19,7 @@ export default function LoadingState({ title, subtitle, currentStep, progress }:
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-t from-gray-900 via-yellow-900 to-gray-900 flex items-center justify-center">
+    <div className="flex items-center justify-center">
       <div className="glass-effect rounded-2xl p-8 max-w-md w-full mx-4 border border-cyan-500/20">
         <div className="text-center">
           {/* Spinner animado */}
@@ -38,7 +38,7 @@ export default function LoadingState({ title, subtitle, currentStep, progress }:
           {progress !== undefined && (
             <div className="w-full bg-gray-700 rounded-full h-2 mb-6">
               <div 
-                className="bg-gradient-to-r from-cyan-500 to-purple-500 h-2 rounded-full transition-all duration-300"
+                className="bg-linear-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${progress}%` }}
               ></div>
             </div>
@@ -55,7 +55,7 @@ export default function LoadingState({ title, subtitle, currentStep, progress }:
           )}
 
           {/* Lista de passos */}
-          <div className="space-y-2 text-left">
+          <div className="flex flex-col gap-2 p-2 text-left">
             {steps.map((step, index) => (
               <div 
                 key={step}

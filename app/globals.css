@@ -1,25 +1,260 @@
 /* app/globals.css */
-@import 'tailwindcss/base';
-@import 'tailwindcss/components';
-@import 'tailwindcss/utilities';
+@import "tailwindcss";
+
+@plugin "daisyui" {
+}
+
+@plugin "daisyui/theme" {
+  name: "dim";
+  default: true;
+  prefersdark: true;
+  color-scheme: "dark";
+  --color-base-100: oklch(30.857% 0.023 264.149);
+  --color-base-200: oklch(28.036% 0.019 264.182);
+  --color-base-300: oklch(26.346% 0.018 262.177);
+  --color-base-content: oklch(82.901% 0.031 222.959);
+  --color-primary: oklch(76% 0.233 130.85);
+  --color-primary-content: oklch(17.226% 0.028 139.549);
+  --color-secondary: oklch(70% 0.213 47.604);
+  --color-secondary-content: oklch(14.675% 0.033 35.353);
+  --color-accent: oklch(79% 0.184 86.047);
+  --color-accent-content: oklch(14.845% 0.026 311.379);
+  --color-neutral: oklch(24.731% 0.02 264.094);
+  --color-neutral-content: oklch(82.901% 0.031 222.959);
+  --color-info: oklch(86.078% 0.142 206.182);
+  --color-info-content: oklch(17.215% 0.028 206.182);
+  --color-success: oklch(86.171% 0.142 166.534);
+  --color-success-content: oklch(17.234% 0.028 166.534);
+  --color-warning: oklch(86.163% 0.142 94.818);
+  --color-warning-content: oklch(17.232% 0.028 94.818);
+  --color-error: oklch(82.418% 0.099 33.756);
+  --color-error-content: oklch(16.483% 0.019 33.756);
+  --radius-selector: 1rem;
+  --radius-field: 0.5rem;
+  --radius-box: 1rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.1875rem;
+  --border: 1.5px;
+  --depth: 1;
+  --noise: 1;
+}
 
 @layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+
   body {
-    @apply bg-gray-900 text-white;
+    @apply overflow-y-hidden gap-4 flex flex-col items-center justify-center text-white;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.5) 65%, rgba(0, 0, 0, 1) 100%)
+  }
+
+  input, textarea {
+    @apply transition-all duration-300;
+  }
+
+  input[type="checkbox"] {
+    @apply cursor-pointer;
+  }
+
+  .glass-apple-card {
+    @apply border-2 border-gray-700 rounded-2xl p-4 shadow-2xs shadow-black/50 bg-blend-multiply bg-white/20 transition-all duration-300;
+  }
+  
+  .glass-apple-card:hover {
+    @apply bg-white/30;
+  }
+
+  button {
+    @apply cursor-pointer transition-all duration-300;
+  }
+  
+  button:disabled {
+    @apply cursor-not-allowed opacity-50;
   }
 }
 
-@layer components {
-  .glass-effect {
-    @apply bg-white/5 backdrop-blur-md border border-white/10;
-  }
+/* Keyframes para animação de gradiente */
+@keyframes gradient-shift {
+  0% { background-position: 0% 50% }
+  50% { background-position: 100% 50% }
+  100% { background-position: 0% 50% }
 }
 
 @layer utilities {
+  /* Classes Glass Apple corrigidas para serem utilitários válidos */
+  .glass-apple, .glass-effect, .glass-apple-dark {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 
+      0 8px 32px 0 rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+    border-radius: 0.5rem;
+    transition: all 0.3s;
+  }
+
+
+  .writing-mode-vertical-lr {
+    writing-mode: vertical-lr;
+  }
+
+  .font-pixel {
+    font-family: var(--font-jersey-10), sans-serif;
+  }
+
+  .font-calm {
+    font-family: var(--font-funnel), sans-serif;
+  }
+  
+  .text-color {
+    @apply bg-blend-difference bg-clip-text text-transparent bg-linear-to-br from-green-500 to-yellow-500 drop-shadow-xs text-shadow-xs shadow-white
+  }
+
+  .glass-apple-dark {
+    background: rgba(0, 0, 0, 0.6);
+  }
+
+  button, input, select {
+    @apply transform-fill transition-all p-2 rounded-lg
+    duration-300 ease-in-out bg-white/10
+    border border-t-white/5 border-l-white/5
+  border-b-gray-800/30 border-r-gray-800/30
+    backdrop-blur-xs
+    cursor-pointer;
+  }
+
+  select { @apply h-10.5 }
+
+  input.prefix, select.prefix {
+    @apply pl-10;
+  }
+
+  .join button.join-item {
+    @apply py-4;
+  }
+  
+  .glass-apple-button:hover, button:hover, input:hover, input:focus, select:hover, select:focus {
+    @apply shadow-2xs shadow-black transform-fill transition-all duration-300 
+    bg-white/30 ease-in-out 
+    backdrop-blur-none
+    text-shadow-2xs
+  }
+  
+  /* Efeito de brilho Apple */
+  .apple-glow {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .apple-glow::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(
+      circle at center,
+      rgba(255, 255, 255, 0.15) 0%,
+      rgba(255, 255, 255, 0.1) 25%,
+      rgba(255, 255, 255, 0.05) 50%,
+      transparent 70%
+    );
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+  }
+  
+  .apple-glow:hover::after {
+    opacity: 1;
+  }
+  
+  /* Animações específicas para o efeito Apple */
+  .animate-float-apple {
+    animation: floatApple 3s ease-in-out infinite;
+  }
+  
+  .animate-pulse-apple {
+    animation: pulseApple 2s ease-in-out infinite;
+  }
+  
+  .animate-shine-apple {
+    background: linear-gradient(
+      120deg,
+      transparent 0%,
+      transparent 40%,
+      rgba(255, 255, 255, 0.03) 50%,
+      rgba(255, 255, 255, 0.08) 55%,
+      rgba(255, 255, 255, 0.03) 60%,
+      transparent 70%,
+      transparent 100%
+    );
+    background-size: 200% 200%;
+    animation: shineApple 3s ease-in-out infinite;
+  }
+  
+  /* Keyframes para animações Apple */
+  @keyframes floatApple {
+    0%, 100% { transform: translateY(0) translateX(0); }
+    50% { transform: translateY(-10px) translateX(5px); }
+  }
+  
+  @keyframes pulseApple {
+    0%, 100% { 
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+    }
+    50% { 
+      box-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+    }
+  }
+  
+  @keyframes shineApple {
+    0% { background-position: 200% 200%; }
+    100% { background-position: -200% -200%; }
+  }
+  
+  /* Textos com efeito Apple */
+  .text-apple {
+    text-shadow: 
+      0 2px 4px rgba(0, 0, 0, 0.3),
+      0 0 20px rgba(255, 255, 255, 0.1);
+  }
+  
+  /* Animações existentes mantidas */
   .animate-spin-reverse {
     animation: spin-reverse 1s linear infinite;
   }
-  
+
+  @keyframes credit-card-shine {
+    0% {
+      background-position: 200% 200%;
+    }
+    100% {
+      background-position: -200% -200%;
+    }
+  }
+
+  .animate-shine {
+    background: linear-gradient(
+      120deg,
+      transparent 0%,
+      transparent 30%,
+      rgba(255, 255, 255, 0.01) 45%,
+      rgba(255, 255, 255, 0.04) 50%,
+      rgba(255, 255, 255, 0.01) 55%,
+      transparent 50%,
+      transparent 100%
+    );
+    background-size: 200% 200%;
+    animation: credit-card-shine 6s ease-in-out infinite;
+  }
+
   @keyframes spin-reverse {
     from {
       transform: rotate(360deg);
@@ -28,29 +263,179 @@
       transform: rotate(0deg);
     }
   }
+
+  .clip-custom {
+    clip-path: polygon(
+      0% 0%,
+      85% 0%,
+      100% 25%,
+      100% 100%,
+      0% 100%
+    );
+  }
 }
 
-.h-40 {
-  height: 12rem;
+/* Classes específicas para componentes */
+.avatar.avatar-online {
+  @apply bg-green-500 border border-white/50 rounded-full w-4 h-4 absolute right-0 lg:right-3 top-2 lg:top-3;
+}
+
+.avatar.avatar-offline {
+  @apply bg-red-500 border border-white/50 rounded-full w-4 h-4 absolute right-0  lg:right-3 top-2 lg:top-3;
+}
+
+.playgrid-background {
+  background: 
+    url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 40" width="10" height="50"><text x="-25" y="22" font-size="10px" font-weight="bold" font-family="Sans-serif" fill="rgba(255,255,255,0.06)" transform="rotate(-55 0,15)">PlayGRID</text></svg>') repeat,
+    linear-gradient(135deg, 
+      rgba(0, 0, 0, 0.05) 0%, 
+      rgba(0, 0, 0, 0.08) 25%, 
+      rgba(0, 0, 0, 0.05) 50%, 
+      rgba(0, 0, 0, 0.08) 75%, 
+      rgba(0, 0, 0, 0.05) 100%);
+  background-size: 30px 30px, 400% 400%;
+  animation: gradient-shift 15s ease infinite;
+  background-blend-mode: overlay;
+}
+
+/* Tipografia */
+h1, h3 {
+  font-family: var(--font-funnel), sans-serif;
+  letter-spacing: 0.05em;
+}
+
+h2 {
+  font-family: var(--font-jersey-10), sans-serif;
+  letter-spacing: 0.05em;
+}
+
+h1 {  
+  @apply text-5xl sm:text-5xl lg:text-6xl mb-10 p-0 truncate text-balance font-bold drop-shadow-sm text-shadow-black text-shadow-2xs;
+}
+
+/* Animações existentes mantidas */
+@keyframes windFloat {
+  0%, 100% { 
+    transform: translateY(0px) translateX(0px) rotate(0deg); 
+  }
+  25% { 
+    transform: translateY(-8px) translateX(4px) rotate(0.5deg); 
+  }
+  50% { 
+    transform: translateY(-12px) translateX(-3px) rotate(-0.3deg); 
+  }
+  75% { 
+    transform: translateY(-6px) translateX(2px) rotate(0.2deg); 
+  }
+}
+
+.animate-wind-float { animation: windFloat 6s ease-in-out infinite; }
+.animate-wind-float-slow { animation: windFloat 9s ease-in-out infinite; }
+.animate-wind-float-fast { animation: windFloat 4s ease-in-out infinite; }
+
+@keyframes windGentle {
+  0%, 100% { 
+    transform: translateY(0px) rotate(0deg); 
+  }
+  33% { 
+    transform: translateY(-10px) translateX(3px) rotate(1deg); 
+  }
+  66% { 
+    transform: translateY(-5px) translateX(-2px) rotate(-0.8deg); 
+  }
+}
+
+@keyframes windSway {
+  0%, 100% { 
+    transform: translateX(0px) rotate(0deg); 
+  }
+  25% { 
+    transform: translateX(6px) rotate(0.8deg); 
+  }
+  50% { 
+    transform: translateX(0px) rotate(0deg); 
+  }
+  75% { 
+    transform: translateX(-6px) rotate(-0.8deg); 
+  }
+}
+
+.animate-wind-gentle { animation: windGentle 7s ease-in-out infinite; }
+.animate-wind-sway { animation: windSway 5s ease-in-out infinite; }
+
+/* Reset para garantir compatibilidade */
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  height: 100vh;
+  margin: 0;
+}
+
+body {
+  overflow-x: hidden;
+  overflow-y: auto;
+  font-family: var(--font-funnel), sans-serif;
+}
+
+#__next {
+  min-height: 100vh;
 }
 
 .object-cover-custom {
-    object-fit: scale-down;
+  object-fit: scale-down;
 }
+
+/* Sprites existentes mantidos */
+.level-sprite {
+  background-image: url(/level-sprite.png?1);
+  background-repeat: no-repeat;
+  background-size: 36px 360px;
+  width: 36px;
+  height: 36px;
+}
+
+.level-sprite.level-1 { background-position: 0 0; }
+.level-sprite.level-100 { background-position: 0 -36px; }
+.level-sprite.level-200 { background-position: 0 -72px; }
+.level-sprite.level-300 { background-position: 0 -108px; }
+.level-sprite.level-400 { background-position: 0 -144px; }
+.level-sprite.level-500 { background-position: 0 -180px; }
+.level-sprite.level-600 { background-position: 0 -216px; }
+.level-sprite.level-700 { background-position: 0 -252px; }
+.level-sprite.level-800 { background-position: 0 -288px; }
+.level-sprite.level-999 { background-position: 0 -324px; }
+
+.class-sprite {
+  background-image: url(/class-sprite.png?1);
+  background-repeat: no-repeat;
+  background-size: 128px 800px;
+  width: 128px;
+  height: 200px;
+}
+
+.class-sprite.level-1 { background-position: 0 0; }
+.class-sprite.level-2 { background-position: 0 -200px; }
+.class-sprite.level-3 { background-position: 0 -400px; }
+.class-sprite.level-4 { background-position: 0 -600px; }
 
 /* Scrollbar personalizada */
 ::-webkit-scrollbar {
-  width: 8px;
+  @apply w-4 lg:w-8
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-gray-800;
+  background: rgba(255, 255, 255, 0.05);
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gradient-to-b from-cyan-500 to-purple-500 rounded-full;
+  background: linear-gradient(135deg, 
+    rgba(59, 130, 246, 0.5), 
+    rgba(139, 92, 246, 0.5));
+  border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply from-cyan-400 to-purple-400;
+  background: linear-gradient(135deg, 
+    rgba(59, 130, 246, 0.7), 
+    rgba(139, 92, 246, 0.7));
 }

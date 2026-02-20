@@ -1,5 +1,10 @@
 // lib/mongodb.ts
+import { ScoreBreakdown } from '@/types/analysis.type';
+import { GameMetacritic } from '@/types/metacritc';
+import { PSNUser } from '@/types/psn';
+import { GotyStats, TrophySummary, TrophyTitle } from '@/types/trophies';
 import { MongoClient, Db, ObjectId } from 'mongodb';
+import { normalizeText } from './utils/text';
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/psn_analyser';
 const MONGODB_DB = process.env.MONGODB_DB || 'psn_analyser';
@@ -13,7 +18,6 @@ export async function connectToDatabase() {
   }
 
   try {
-    console.log('🔗 Conectando ao MongoDB...');
     const client = new MongoClient(MONGODB_URI);
     
     await client.connect();
@@ -22,7 +26,6 @@ export async function connectToDatabase() {
     cachedClient = client;
     cachedDb = db;
 
-    console.log('✅ Conectado ao MongoDB com sucesso');
     return { client, db };
   } catch (error) {
     console.error('❌ Erro ao conectar com MongoDB:', error);
@@ -34,14 +37,20 @@ export async function connectToDatabase() {
 
 export interface AnalysisData {
   _id?: ObjectId;
+  _cacheId?: string;
   accountId: string;
-  username: string;
-  analysis: any;
+  npCommunicationId?: string;
+  completionRate: number;
+  migueScore: ScoreBreakdown;
+  totalGames: number;
+  username?: string;
+  psnUser?: PSNUser;
   createdAt: Date;
-  expiresAt: Date;
+  renewAt: Date;
   lastAccessed: Date;
-  trophySummary: any;
-  games: any[];
+  trophySummary: TrophySummary;
+  games: TrophyTitle[];
+  gotyStats: GotyStats;
 }
 
 // lib/mongodb.ts - Adicione estas coleções
@@ -94,32 +103,75 @@ export interface UserTrophy {
 const CACHE_DURATION = 60 * 60 * 1000; // 60 minutos em milissegundos
 
 // lib/mongodb.ts - Atualize a função saveAnalysis
-export async function saveAnalysis(accountId: string, username: string, analysisData: any): Promise<string> {
+export async function saveAnalysis(accountId: string, username: string, analysisData: AnalysisData): Promise<string> {
   const { db } = await connectToDatabase();
   
+  const renewAt = analysisData.renewAt.getDate() <= Date.now() ? analysisData.renewAt : new Date(Date.now() + CACHE_DURATION);
+
   // A estrutura correta deve espalhar os dados da análise no nível raiz
   const document = {
-    accountId,
-    username,
     // Espalhar todos os dados da análise no nível raiz
     ...analysisData,
     createdAt: new Date(),
-    expiresAt: new Date(Date.now() + CACHE_DURATION),
+    renewAt: renewAt,
     lastAccessed: new Date()
   };
+  
+  const existsAnalyse = await db.collection('analyses').findOne({ accountId: accountId });
 
-  console.log('💾 Salvando documento no MongoDB:', {
-    accountId,
-    username,
-    hasTrophySummary: !!analysisData.trophySummary,
-    hasGames: !!analysisData.games,
-    hasGotyStats: !!analysisData.gotyStats,
-    hasAnalysis: !!analysisData.analysis,
-    gamesCount: analysisData.games?.length || 0
-  });
+  if (existsAnalyse) {
+    await db.collection('analyses').updateOne({ accountId: accountId }, { $set: document });
+    return existsAnalyse._id.toString();
+  } else {
+    const result = await db.collection('analyses').insertOne(document);
+    return result.insertedId.toString();
+  }
+}
 
-  const result = await db.collection('analyses').insertOne(document);
-  return result.insertedId.toString();
+export async function saveMetacritc(gamesData: GameMetacritic[]): Promise<number> {
+  const { db } = await connectToDatabase();
+
+  const updateResult = await db.collection<GameMetacritic>('metacritc').insertMany(gamesData, { ordered: false })
+
+  return updateResult.insertedCount;
+}
+
+export async function updateNormalizedTextMetacritc(): Promise<void> {
+  const { db } = await connectToDatabase();
+
+  // temporário para atualizar com coluna normalized Texto (mais velocidade na busca)
+  const games = await db.collection<GameMetacritic>('metacritc').find({}).toArray();
+
+  for (const game of games) {
+    const normalizedName = normalizeText(game.name);
+
+    await db.collection<GameMetacritic>('metacritc').updateOne(
+      { _id: game._id },
+      { $set: { normalizedName: normalizedName } }
+    );
+  }
+}
+
+export async function getMetacritcGameData(title: string, npCommunicationId: string): Promise<GameMetacritic | null> {
+  const { db } = await connectToDatabase();
+  const normalizedName = normalizeText(title);
+
+  const game = await db.collection<GameMetacritic>('metacritc').findOne({
+              normalizedName: { $eq: normalizedName }
+          });
+
+    if (game) {
+      await db.collection<GameMetacritic>('metacritc').updateOne(
+        { _id: game._id },
+        { $set: { npCommunicationId, normalizedName } }
+      );
+  }
+
+  if (!game) {
+    return null;
+  } 
+
+  return game;
 }
 
 export async function getAnalysis(analysisId: string): Promise<AnalysisData | null> {
@@ -127,20 +179,22 @@ export async function getAnalysis(analysisId: string): Promise<AnalysisData | nu
   
   try {
     const objectId = new ObjectId(analysisId);
-    const analysis = await db.collection('analyses').findOne({ 
-      _id: objectId,
-      expiresAt: { $gt: new Date() }
+    const analysis = await db.collection<AnalysisData>('analyses').findOne({ 
+      _id: objectId
     });
-
+    
     // Atualizar lastAccessed se a análise foi encontrada
     if (analysis) {
       await db.collection('analyses').updateOne(
         { _id: objectId },
-        { $set: { lastAccessed: new Date() } }
+        { $set: { 
+          lastAccessed: Date.now(),
+          } 
+        }
       );
     }
 
-    return analysis as AnalysisData | null;
+    return analysis;
   } catch (error) {
     console.error('❌ Erro ao buscar análise:', error);
     return null;
@@ -152,8 +206,7 @@ export async function getRecentAnalysisByAccountId(accountId: string): Promise<A
   
   try {
     const analysis = await db.collection('analyses').findOne({ 
-      accountId,
-      expiresAt: { $gt: new Date() }
+      accountId
     });
 
     // Atualizar lastAccessed se a análise foi encontrada
@@ -182,9 +235,9 @@ export async function canCreateNewAnalysis(accountId: string): Promise<{
     return { canCreate: true };
   }
 
-  const now = new Date().getTime();
-  const expiresAt = existingAnalysis.expiresAt.getTime();
-  const timeRemaining = expiresAt - now;
+  const now = Date.now();
+  const renewAt = existingAnalysis.renewAt?.getTime() || Date.now() + 60 * 60 * 1000;
+  const timeRemaining = renewAt - now;
 
   return {
     canCreate: false,
@@ -208,9 +261,9 @@ export function formatTimeRemaining(ms: number): string {
 // Função para limpar análises expiradas
 export async function cleanupExpiredAnalyses(): Promise<number> {
   const { db } = await connectToDatabase();
-  
+
   const result = await db.collection('analyses').deleteMany({
-    expiresAt: { $lt: new Date() }
+    renewAt: { $lt: new Date() }
   });
 
   return result.deletedCount;

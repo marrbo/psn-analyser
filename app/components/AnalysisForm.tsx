@@ -2,6 +2,8 @@
 'use client';
 
 import { useState } from 'react';
+import { Button } from './ui/Button';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface AnalysisFormProps {
   onAnalysisStart: (username: string) => void;
@@ -26,8 +28,8 @@ export default function AnalysisForm({ onAnalysisStart, isAnalyzing, currentStep
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="username" className="block text-sm font-medium text-gray-300 text-left mb-2">
-            Seu PSN Username
+          <label htmlFor="username" className="block text-lg font-medium text-gray-300 text-left mb-2">
+            Seu Username (PSN ID)
           </label>
           <input
             type="text"
@@ -40,20 +42,33 @@ export default function AnalysisForm({ onAnalysisStart, isAnalyzing, currentStep
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={isAnalyzing || !username.trim()}
-          className="w-full py-3 px-4 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 rounded-lg font-bold text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isAnalyzing ? (
-            <div className="flex items-center justify-center">
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-              Analisando...
-            </div>
-          ) : (
-            '🎮 Fazer Análise'
-          )}
-        </button>
+        <div className="flex justify-center">
+          <Button 
+            type="submit"
+            variant="primary"
+            disabled={isAnalyzing || !username.trim()}
+          >
+            {isAnalyzing ? (
+                <div className="flex items-center justify-center">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  Analisando...
+                </div>
+              ) : (
+                '🎮 Fazer Análise'
+              )}
+          </Button>
+          <Button 
+            variant="secondary"
+            onClick={() => window.history.back()}
+          >
+            <span className="flex items-center gap-3">
+              <ChevronLeft className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              Voltar
+            </span>
+          </Button>
+        </div>
+        
+        
       </form>
 
       {isAnalyzing && currentStep && (
@@ -71,6 +86,22 @@ export default function AnalysisForm({ onAnalysisStart, isAnalyzing, currentStep
           Use o mesmo username que aparece no app oficial da PSN. 
           Não é necessário o AccountID, nós convertemos automaticamente.
         </p>
+      </div>
+
+      {/* Aviso de 60 minutos */}
+      <div className="glass-effect p-4 w-full mt-8 text-sm rounded-lg bg-yellow-500/20">
+        <div className="flex items-start">
+          <div className="text-3xl mr-4 mt-1">⏰</div>
+          <div>
+            <h3 className="text-xl font-bold text-yellow-400 mb-2">Atenção: Sistema de Cache</h3>
+            <p className="text-gray-300">
+              Para otimizar o desempenho e evitar sobrecarga, cada perfil só pode ser analisado uma vez a cada <strong>60 minutos</strong>.
+            </p>
+            <p className="text-gray-400 text-xs mt-2">
+              Se você já analisou este perfil recentemente, poderá visualizar a análise existente ou aguardar o tempo restante para uma nova análise.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

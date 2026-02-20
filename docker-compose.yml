@@ -26,7 +26,8 @@ services:
     ports:
       - "27017:27017"
     environment:
-      - MONGO_INITDB_DATABASE=psn_analyser
+      - MONGO_INITDB_DATABASE=psn-analyser
+      #- MONGO_INITDB_DATABASE=psn-analyser
     volumes:
       - mongodb_data:/data/db
       - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
@@ -40,8 +41,11 @@ services:
       - ME_CONFIG_MONGODB_SERVER=mongodb
       - ME_CONFIG_BASICAUTH_USERNAME=admin
       - ME_CONFIG_BASICAUTH_PASSWORD=password
-    depends_on:
-      - mongodb
+      # - ME_CONFIG_MONGODB_SERVER=atlas-psn-analyser.ytloxii.mongodb.net
+      # - ME_CONFIG_BASICAUTH_USERNAME=Vercel-Admin-atlas-psn-analyser
+      # - ME_CONFIG_BASICAUTH_PASSWORD=BN9OYARYYsfHmEaP
+    # depends_on:
+    #   - mongodb
 
 volumes:
   mongodb_data:

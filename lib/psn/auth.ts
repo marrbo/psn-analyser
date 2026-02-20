@@ -1,34 +1,95 @@
 // src/lib/psn/auth.ts
+
+import { CacheService } from "./cache-service";
+
+interface Token {
+  _cacheId: string;
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+  id_token: string;
+  refresh_token_expires_in: number;
+  scope: string;
+  token_type: string;
+}
+
 export class PSNAuth {
-  private accessToken: string | null = null;
-  
+  private token: Token | null = null;
+  private readonly cache: CacheService;
   // Credenciais IDÊNTICAS ao script PowerShell
   private readonly CLIENT_ID = '09515159-7237-4370-9b40-3806e67c0891';
   private readonly BASE64_AUTH = 'MDk1MTUxNTktNzIzNy00MzcwLTliNDAtMzgwNmU2N2MwODkxOnVjUGprYTV0bnRCMktxc1A=';
   private readonly REDIRECT_URI = 'com.scee.psxandroid.scecompcall://redirect';
+  private readonly npsso = process.env.PSN_NPSSO_TOKEN;
 
-  async authenticate(): Promise<string | null> {
-    if (this.accessToken) {
-      return this.accessToken;
-    }
 
-    const npsso = process.env.PSN_NPSSO_TOKEN;
-    if (!npsso) {
+  constructor() {
+    if (!this.npsso) {
       throw new Error('PSN_NPSSO_TOKEN não encontrado');
     }
 
-    console.log('🚀 Iniciando autenticação PSN com client_id do PowerShell...');
+    this.cache = new CacheService(this.npsso, 'tokens');
+  }
+
+  private getExpired(expiresIn: number): boolean {
+    if (this.token) {
+      const expirationDate = new Date(
+        Date.now() + expiresIn * 1000
+      ).toISOString();  
+
+      return new Date(expirationDate).getTime() < Date.now();
+    }
+    return true;
+  }
+
+  private accessTokenExpired(): boolean {
+    let expired = true;
+    if (this.token) {
+      expired = this.getExpired(this.token.expires_in);
+    }
+    return expired;
+  }
+
+  private refreshTokenExpired(): boolean {
+    let expired = true;
+    if (this.token) {
+      expired = this.getExpired(this.token.refresh_token_expires_in)
+    }
+    return expired;
+  }
+
+  async authenticate(): Promise<Token | null> {
+    this.token = await this.cache.getItem<Token>();
+
+    // Mesmo com token válido está dando erro 401
+    // forçando revalidar o token
+    if (this.token && !this.refreshTokenExpired()) {
+      await this.refreshToken(this.token.refresh_token);
+    }
+
+    if (this.token && !this.accessTokenExpired()) {
+      return this.token;
+    }
+
+    if (this.token && this.accessTokenExpired() && !this.refreshTokenExpired()) {
+      await this.refreshToken(this.token.refresh_token);
+      return this.token;
+    }
+
+    if (!this.npsso) {
+      throw new Error('PSN_NPSSO_TOKEN não encontrado');
+    }
 
     try {
       // Método IDÊNTICO ao PowerShell - espera o 302 e extrai o code
-      const authCode = await this.getAuthCodePowerShellMethod(npsso);
-      console.log('✅ Código de autorização obtido:', authCode);
+      const authCode = await this.getAuthCodePowerShellMethod(this.npsso);
 
       const tokenData = await this.exchangeCodeForToken(authCode);
-      console.log('✅ Access token obtido com sucesso');
+      this.token = tokenData;
 
-      this.accessToken = tokenData.access_token;
-      return this.accessToken;
+      new CacheService(this.npsso, 'tokens').setItem(tokenData);
+
+      return this.token;
     } catch (error) {
       console.error('❌ Erro na autenticação:', error);
       throw error;
@@ -46,8 +107,6 @@ export class PSNAuth {
 
     const url = `https://ca.account.sony.com/api/authz/v3/oauth/authorize?${params}`;
 
-    console.log('📤 Fazendo requisição de autorização (PowerShell method)...');
-
     try {
       // Esta requisição DEVE retornar 302 - tratamos como sucesso
       const response = await fetch(url, {
@@ -59,7 +118,11 @@ export class PSNAuth {
         redirect: 'manual' // CRÍTICO: não seguir redirecionamento automaticamente
       });
 
-      console.log(`📥 Status esperado 302, recebido: ${response.status}`);
+
+      if (response.status === 429) {
+        console.log(`📍 Tente mais tarde, status 429`);
+        throw new Error('Muitas solicitações, tente mais tarde');
+      }
 
       // NOVA LÓGICA: 302 é o comportamento esperado e correto
       if (response.status === 302) {
@@ -67,8 +130,6 @@ export class PSNAuth {
         if (!location) {
           throw new Error('Header location não encontrado no redirecionamento 302');
         }
-
-        console.log(`📍 Location: ${location}`);
 
         // Extrair code da URL exatamente como no PowerShell
         const urlObj = new URL(location);
@@ -97,14 +158,12 @@ export class PSNAuth {
     }
   }
 
-  private async exchangeCodeForToken(authCode: string): Promise<any> {
-    console.log('🔄 Trocando código por access token...');
-
+  private async exchangeCodeForToken(authCode: string): Promise<Token> {
     const body = new URLSearchParams({
       'code': authCode,
       'redirect_uri': this.REDIRECT_URI,
       'grant_type': 'authorization_code',
-      'token_format': 'jwt' // ADICIONADO: igual ao PowerShell
+      'token_format': 'jwt'
     });
 
     const response = await fetch('https://ca.account.sony.com/api/authz/v3/oauth/token', {
@@ -117,8 +176,6 @@ export class PSNAuth {
       body: body
     });
 
-    console.log(`📥 Status token exchange: ${response.status}`);
-
     if (!response.ok) {
       const errorText = await response.text();
       console.error('❌ Erro no token exchange:', errorText);
@@ -126,12 +183,50 @@ export class PSNAuth {
     }
 
     const tokenData = await response.json();
-    console.log('✅ Token exchange realizado com sucesso');
     
     return tokenData;
   }
 
-  async getToken(): Promise<string | null> {
+  private async refreshToken(refresh_token: string): Promise<void> {
+
+    const body = new URLSearchParams({
+      'refresh_token': refresh_token,
+      'grant_type': 'refresh_token',
+      'token_format': 'jwt',
+      'scope': 'psn:mobile.v2.core psn:clientapp'
+    });
+
+    const response = await fetch('https://ca.account.sony.com/api/authz/v3/oauth/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${this.BASE64_AUTH}`,
+        'User-Agent': 'Mozilla/5.0 (PlayStation 4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0 Safari/605.1.15'
+      },
+      body: body
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Erro no refreshToken:', errorText);
+      throw new Error(`Falha no refreshToken: ${response.status} - ${errorText}`);
+    }
+
+    const tokenData = await response.json();
+
+    this.token = tokenData;
+  }
+
+  async getAccessToken(): Promise<string | null> {
+    const token = await this.authenticate();
+    
+    if (token === null) {
+      return null;
+    }
+    return token?.access_token;
+  }
+
+  async getToken(): Promise<Token | null> {
     return await this.authenticate();
   }
 }

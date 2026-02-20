@@ -1,459 +1,263 @@
-// src/lib/psn/trophy-service.ts
+// /lib/psn/trophy-service.ts
+import { MongoClient, ObjectId } from 'mongodb';
 import { PSNAuth } from './auth';
+import { PSNUser, SocialMetadata } from '@/types/psn';
+import { CacheService } from './cache-service';
+import { metacriticScraper } from '../metacritc-scraper';
+import { DefinedTrophies, GameTitle, GotyStats, TrophyDetail, TrophyGroup, TrophySummary, TrophyTitle } from '@/types/trophies';
+import { CacheItem, GOTYGame, GotyMatchResult, ScoreBreakdown, ScoringFactors } from '@/types/analysis.type';
+import { calculateNormalizedScore, getPlatinumCountsFromTrophies } from '../calcular-platinas';
+import { userRepository } from '@/types/repository/user-repository';
+import { AnalysisData, getAnalysis } from '../mongodb';
+import { UserService } from './user-service';
+import { normalizeText } from '../utils/text';
+import { toDecimalHours } from '@/utils/durationUtils';
+import { gameRepository } from '@/types/repository/game-repository';
+import { NormalizedScore, UserPlatinumData } from '../score.types';
+import { trophySumaryRepository } from '@/types/repository/trophy-repository';
+import { analyseRepository } from '@/types/repository/analyse-repository';
 
-interface TrophySummary {
-  accountId: string;
-  trophyLevel: number;
-  progress: number;
-  tier: number;
-  earnedTrophies: {
-    bronze: number;
-    silver: number;
-    gold: number;
-    platinum: number;
-  };
-  totalTrophies: number;
-}
-
-interface TrophyTitle {
-  npServiceName: string;
-  npCommunicationId: string;
-  trophyTitleName: string;
-  trophyTitleDetail: string;
-  trophyTitleIconUrl: string;
-  trophyTitlePlatform: string;
-  definedTrophies: {
-    bronze: number;
-    silver: number;
-    gold: number;
-    platinum: number;
-  };
-  earnedTrophies: {
-    bronze: number;
-    silver: number;
-    gold: number;
-    platinum: number;
-  };
-  progress: number;
-  lastUpdatedDateTime: string;
-}
-
-interface GotyGame {
-  titulo: string;
-  ano_premiacao: number;
-  desenvolvedora: string;
-  metacritic_score: number;
-  plataformas: string[];
-  imagem_capa: string;
-  search_terms: string[];
-  alternative_titles: string[];
-}
-
-interface GotyMatchResult {
-  isGoty: boolean;
-  gameData?: GotyGame;
-  matchType: 'exact' | 'partial' | 'alternative' | 'none';
-  confidence: number;
-}
-
-interface GameAward {
-  titulo: string;
-  ano_premiacao: number;
-  desenvolvedora: string;
-  metacritic_score: number;
-  plataformas: string[];
-  imagem_capa: string;
-  search_terms: string[];
-  alternative_titles: string[];
-};
-
-// Base de dados completa de GOTY winners
-const GOTY_GAMES_DATABASE: GameAward[] = [
-  {
-    titulo: "Baldur's Gate 3",
-    ano_premiacao: 2023,
-    desenvolvedora: "Larian Studios",
-    metacritic_score: 96,
-    plataformas: ["PC", "PS5", "Xbox Series X/S"],
-    // Fonte: IGDB
-    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co6nlt.jpg",
-    search_terms: ["baldur's gate 3", "baldurs gate 3", "bg3"],
-    alternative_titles: ["Baldur's Gate III"]
-  },
-  {
-    titulo: "Elden Ring",
-    ano_premiacao: 2022,
-    desenvolvedora: "FromSoftware",
-    metacritic_score: 96,
-    plataformas: ["PC", "PS4", "PS5", "Xbox One", "Xbox Series X/S"],
-    // Fonte: IGDB
-    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co4jni.jpg",
-    search_terms: ["elden ring"],
-    alternative_titles: []
-  },
-  {
-    titulo: "It Takes Two",
-    ano_premiacao: 2021,
-    desenvolvedora: "Hazelight Studios",
-    metacritic_score: 88,
-    plataformas: ["PC", "PS4", "PS5", "Xbox One", "Xbox Series X/S", "Switch"],
-    // Fonte: IGDB
-    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co2e8s.jpg",
-    search_terms: ["it takes two"],
-    alternative_titles: []
-  },
-  {
-    titulo: "The Last of Us Part II",
-    ano_premiacao: 2020,
-    desenvolvedora: "Naughty Dog",
-    metacritic_score: 93,
-    plataformas: ["PS4"],
-    // Fonte: IGDB
-    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co2irh.jpg",
-    search_terms: ["the last of us part ii", "the last of us part 2", "the last of us 2", "tlou2"],
-    alternative_titles: ["The Last of Us Part 2", "The Last of Us 2"]
-  },
-  {
-    titulo: "Sekiro: Shadows Die Twice",
-    ano_premiacao: 2019,
-    desenvolvedora: "FromSoftware",
-    metacritic_score: 90,
-    plataformas: ["PC", "PS4", "Xbox One"],
-    // Fonte: IGDB
-    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co2p5d.jpg",
-    search_terms: ["sekiro", "sekiro shadows die twice"],
-    alternative_titles: ["Sekiro: Shadows Die Twice"]
-  },
-  {
-    titulo: "God of War",
-    ano_premiacao: 2018,
-    desenvolvedora: "Santa Monica Studio",
-    metacritic_score: 94,
-    plataformas: ["PS4", "PC"],
-    // Fonte: IGDB
-    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1tmu.jpg",
-    search_terms: ["god of war", "gow 2018"],
-    alternative_titles: ["God of War (2018)"]
-  },
-  {
-    titulo: "The Legend of Zelda: Breath of the Wild",
-    ano_premiacao: 2017,
-    desenvolvedora: "Nintendo",
-    metacritic_score: 97,
-    plataformas: ["Switch", "Wii U"],
-    // Fonte: IGDB
-    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1n7d.jpg",
-    search_terms: ["zelda breath of the wild", "breath of the wild", "botw"],
-    alternative_titles: ["Zelda: BOTW", "Breath of the Wild"]
-  },
-  {
-    titulo: "Overwatch",
-    ano_premiacao: 2016,
-    desenvolvedora: "Blizzard Entertainment",
-    metacritic_score: 91,
-    plataformas: ["PC", "PS4", "Xbox One", "Switch"],
-    // Fonte: IGDB
-    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1r7o.jpg",
-    search_terms: ["overwatch"],
-    alternative_titles: ["Overwatch 1"]
-  },
-  {
-    titulo: "The Witcher 3: Wild Hunt",
-    ano_premiacao: 2015,
-    desenvolvedora: "CD Projekt Red",
-    metacritic_score: 92,
-    plataformas: ["PC", "PS4", "Xbox One", "Switch", "PS5", "Xbox Series X/S"],
-    // Fonte: SteamCDN
-    imagem_capa: "https://cdn.cloudflare.steamstatic.com/steam/apps/292030/header.jpg",
-    search_terms: ["witcher 3", "the witcher 3", "wild hunt"],
-    alternative_titles: ["The Witcher 3", "Witcher 3: Wild Hunt"]
-  },
-  {
-    titulo: "Dragon Age: Inquisition",
-    ano_premiacao: 2014,
-    desenvolvedora: "BioWare",
-    metacritic_score: 85,
-    plataformas: ["PC", "PS3", "PS4", "Xbox 360", "Xbox One"],
-    // Fonte: IGDB
-    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1rba.jpg",
-    search_terms: ["dragon age inquisition"],
-    alternative_titles: ["Dragon Age 3"]
-  },
-  {
-    titulo: "Grand Theft Auto V",
-    ano_premiacao: 2013,
-    desenvolvedora: "Rockstar North",
-    metacritic_score: 97,
-    plataformas: ["PC", "PS3", "PS4", "PS5", "Xbox 360", "Xbox One", "Xbox Series X/S"],
-    // Fonte: IGDB
-    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1t8r.jpg",
-    search_terms: ["gta v", "grand theft auto v", "gta 5"],
-    alternative_titles: ["GTA V", "Grand Theft Auto 5"]
-  },
-  {
-    titulo: "The Walking Dead",
-    ano_premiacao: 2012,
-    desenvolvedora: "Telltale Games",
-    metacritic_score: 89,
-    plataformas: ["PC", "PS3", "Xbox 360", "Mobile"],
-    // Fonte: IGDB
-    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1sx9.jpg",
-    search_terms: ["the walking dead", "walking dead telltale"],
-    alternative_titles: ["Walking Dead: The Game"]
-  },
-  {
-    titulo: "The Elder Scrolls V: Skyrim",
-    ano_premiacao: 2011,
-    desenvolvedora: "Bethesda Game Studios",
-    metacritic_score: 96,
-    plataformas: ["PC", "PS3", "Xbox 360", "PS4", "Xbox One", "Switch", "PS5", "Xbox Series X/S"],
-    // Fonte: SteamCDN
-    imagem_capa: "https://cdn.cloudflare.steamstatic.com/steam/apps/72850/header.jpg",
-    search_terms: ["skyrim", "elder scrolls skyrim", "the elder scrolls v"],
-    alternative_titles: ["Skyrim", "Elder Scrolls V"]
-  },
-  {
-    titulo: "Red Dead Redemption",
-    ano_premiacao: 2010,
-    desenvolvedora: "Rockstar San Diego",
-    metacritic_score: 95,
-    plataformas: ["PS3", "Xbox 360", "Switch", "PS4"],
-    // Fonte: IGDB
-    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1sx8.jpg",
-    search_terms: ["red dead redemption"],
-    alternative_titles: ["RDR"]
-  },
-  {
-    titulo: "Uncharted 2: Among Thieves",
-    ano_premiacao: 2009,
-    desenvolvedora: "Naughty Dog",
-    metacritic_score: 96,
-    plataformas: ["PS3"],
-    // Fonte: IGDB
-    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1tq7.jpg",
-    search_terms: ["uncharted 2", "among thieves"],
-    alternative_titles: ["Uncharted 2"]
-  },
-  {
-    titulo: "Grand Theft Auto IV",
-    ano_premiacao: 2008,
-    desenvolvedora: "Rockstar North",
-    metacritic_score: 98,
-    plataformas: ["PC", "PS3", "Xbox 360"],
-    // Fonte: IGDB
-    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1sx7.jpg",
-    search_terms: ["gta iv", "grand theft auto iv", "gta 4"],
-    alternative_titles: ["GTA IV", "Grand Theft Auto 4"]
-  },
-  {
-    titulo: "BioShock",
-    ano_premiacao: 2007,
-    desenvolvedora: "Irrational Games",
-    metacritic_score: 96,
-    plataformas: ["PC", "PS3", "Xbox 360"],
-    // Fonte: IGDB
-    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1sx6.jpg",
-    search_terms: ["bioshock"],
-    alternative_titles: []
-  },
-  {
-    titulo: "The Elder Scrolls IV: Oblivion",
-    ano_premiacao: 2006,
-    desenvolvedora: "Bethesda Game Studios",
-    metacritic_score: 94,
-    plataformas: ["PC", "PS3", "Xbox 360"],
-    // Fonte: IGDB
-    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1sx5.jpg",
-    search_terms: ["oblivion", "elder scrolls oblivion"],
-    alternative_titles: ["Oblivion"]
-  },
-  {
-    titulo: "Resident Evil 4",
-    ano_premiacao: 2005,
-    desenvolvedora: "Capcom",
-    metacritic_score: 96,
-    plataformas: ["GameCube", "PS2", "PC", "Wii", "PS3", "Xbox 360", "PS4", "Xbox One", "Switch"],
-    // Fonte: IGDB (versão original)
-    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1sx4.jpg",
-    search_terms: ["resident evil 4", "re4"],
-    alternative_titles: ["RE4"]
-  },
-  {
-    titulo: "Grand Theft Auto: San Andreas",
-    ano_premiacao: 2004,
-    desenvolvedora: "Rockstar North",
-    metacritic_score: 95,
-    plataformas: ["PS2", "PC", "Xbox"],
-    // Fonte: IGDB
-    imagem_capa: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1sx3.jpg",
-    search_terms: ["gta san andreas", "san andreas"],
-    alternative_titles: ["GTA: San Andreas"]
-  }
-];
-
-// Função otimizada para normalizar texto
-function normalizeText(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9\s]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-// Nova implementação otimizada do isGotyGame
-function isGotyGame(gameTitle: string): GotyMatchResult {
-  const normalizedTitle = normalizeText(gameTitle);
-  
-  // Busca exata primeiro
-  for (const game of GOTY_GAMES_DATABASE) {
-    const exactMatch = game.search_terms.some(term => 
-      normalizeText(term) === normalizedTitle
-    );
-    
-    if (exactMatch) {
-      return {
-        isGoty: true,
-        gameData: game,
-        matchType: 'exact',
-        confidence: 1.0
-      };
-    }
-  }
-  
-  // Busca por inclusão
-  for (const game of GOTY_GAMES_DATABASE) {
-    const partialMatch = game.search_terms.some(term => 
-      normalizedTitle.includes(normalizeText(term)) || 
-      normalizeText(term).includes(normalizedTitle)
-    );
-    
-    if (partialMatch) {
-      return {
-        isGoty: true,
-        gameData: game,
-        matchType: 'partial',
-        confidence: 0.8
-      };
-    }
-  }
-  
-  // Busca em títulos alternativos
-  for (const game of GOTY_GAMES_DATABASE) {
-    const alternativeMatch = game.alternative_titles.some(altTitle => 
-      normalizeText(altTitle) === normalizedTitle
-    );
-    
-    if (alternativeMatch) {
-      return {
-        isGoty: true,
-        gameData: game,
-        matchType: 'alternative',
-        confidence: 0.9
-      };
-    }
-  }
-  
-  return {
-    isGoty: false,
-    matchType: 'none',
-    confidence: 0
-  };
-}
-
-function getGotyStats(games: any[]): {
-  totalGotyGames: number;
-  gotyGames: Array<GotyGame & { userGame: any }>;
-  completionRate: number;
-  byYear: { [year: number]: number };
-} {
-  const gotyGames: Array<GotyGame & { userGame: any }> = [];
-  const byYear: { [year: number]: number } = {};
-  const addedTitles = new Set<string>(); // Para evitar duplicatas
-
-  games.forEach(game => {
-    const match = isGotyGame(game.title);
-    if (match.isGoty && match.gameData) {
-      // Verificar se o jogo já foi adicionado (evitar duplicatas)
-      const gameAlreadyAdded = gotyGames.some(gotyGame => 
-        gotyGame.titulo === match.gameData!.titulo
-      );
-      
-      if (!gameAlreadyAdded) {
-        gotyGames.push({
-          ...match.gameData,
-          userGame: game
-        });
-        
-        // Estatísticas por ano
-        const year = match.gameData.ano_premiacao;
-        byYear[year] = (byYear[year] || 0) + 1;
-      }
-    }
-  });
-  
-  const totalGotyGames = gotyGames.length;
-  const completionRate = totalGotyGames > 0 
-    ? (gotyGames.filter(g => g.userGame.completionPercentage >= 100).length / totalGotyGames) * 100
-    : 0;
-  
-  return {
-    totalGotyGames,
-    gotyGames,
-    completionRate,
-    byYear
-  };
-}
-
-export class PSNTrophyService {
-  private auth: PSNAuth;
+export default class PSNTrophyService {
+  private readonly auth: PSNAuth;
+  private readonly cache: Map<string, CacheItem<any>>;
+  private readonly cacheTTL = 60 * 60 * 1000;
+  private GOTY_GAMES_DATABASE: GOTYGame[] = [];
 
   constructor() {
     this.auth = new PSNAuth();
+    this.cache = new Map<string, CacheItem<any>>();
+    this.cacheTTL = 5 * 60 * 1000;
   }
 
-  async getCompleteProfile(accountId: string) {
+  normalizeText(text: string): string {
+    if (!text || text?.length < 1) return '';
+    return `${text}`
+      .toLowerCase()
+      .replace(/ trophies/g,'')
+      .replace(/troféus do /g,'')
+      .replace(/troféus de /g,'')
+      .replace(/ ps4™ e ps5™/g,'')
+      .replace(/ trophy set/g,'')
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9\s]/g, '')
+      .replace(/\s+/g, ' ')
+      .replace(/™/g,'')
+      .replace(/®/g,'')
+      .replace(/\/n/g,'')
+      .trim();
+  }
+
+  async getLastAnalysis(analysisId: string) {
+    const resultAnalysis: AnalysisData | null = await getAnalysis(analysisId);
+
+    if (!resultAnalysis) return;
+
+    resultAnalysis.renewAt = resultAnalysis.renewAt ? resultAnalysis.renewAt : new Date(new Date().getTime() + this.cacheTTL);
+
+    if (resultAnalysis && resultAnalysis?.renewAt <= new Date()) {
+      const psnUser = await userRepository.findByLastAnalysisId(analysisId);
+
+      if (psnUser) {
+        // const accountId = psnUser.accountId.toString();
+        // const username = psnUser.onlineId;
+
+        // const analysisData: AnalysisData | null = await this.getCompleteProfile(accountId);
+
+        // const analysisId = await saveAnalysis(accountId, username, analysisData);
+
+        // await this.updateUser(analysisId, accountId);
+
+        // if (analysisData) {
+        //   analysisData._id = new ObjectId(analysisId);
+        // }
+
+        resultAnalysis.psnUser = psnUser;
+      }
+    
+      if (resultAnalysis.psnUser) {
+        const presence = await UserService.getUserPresence(resultAnalysis?.psnUser.accountId);
+
+        if (presence?.basicPresence) {
+          resultAnalysis.psnUser.userPresence = presence?.basicPresence.primaryPlatformInfo;
+          if (resultAnalysis.psnUser._id) {
+            const _id: ObjectId = resultAnalysis.psnUser._id;
+            await userRepository.updateById(_id,
+              {
+                lastAnalysisId: analysisId,
+                userPresence: resultAnalysis.psnUser.userPresence
+              });
+          }
+
+        }
+      }
+    }
+
+    return resultAnalysis;
+  }
+
+  async updateUser(analysisId: string, accountId: string) {
+    const user = await userRepository.findByRegex('accountId', accountId);
+    if (user) {
+      userRepository.updatePartial(new ObjectId(user[0]._id), 'lastAnalysisId', analysisId);
+    } else {
+      const psnUser: PSNUser = {
+        accountId,
+        _cacheId: accountId,
+        lastAnalysisId: analysisId,
+      };
+      userRepository.create(psnUser);
+    }
+  }
+
+  async getPartialProfile(accountId: string, npCommunicationId: string): Promise<AnalysisData> {
+    let returnAnalysis: AnalysisData;
+
     try {
-      console.log(`🎯 Buscando perfil completo para: ${accountId}`);
-      
-      const token = await this.auth.getToken();
+      const token = await this.auth.getAccessToken();
 
       if (!token) {
         throw new Error('Erro ao obter token de autenticação');
       }
-      
+
+      const resultAnalysis: AnalysisData = (await analyseRepository.find({ _cacheId: accountId }))[0];
+
+      returnAnalysis = resultAnalysis;
+
+      this.GOTY_GAMES_DATABASE = await this.getGOTYGames();
       const trophySummary = await this.getTrophySummary(accountId, token);
-      console.log(`📊 Sumário de troféus: Level ${trophySummary.trophyLevel}, ${trophySummary.totalTrophies} troféus totais`);
+
+      if (resultAnalysis) {
+        trophySummary.renewAt = resultAnalysis.renewAt;
+        const gameIndex = resultAnalysis.games.findIndex((game: TrophyTitle) => {
+          return game.npCommunicationId === npCommunicationId;
+        });
+
+        let gameUpdated = await this.getGameTrophyList(accountId, token, resultAnalysis.games[gameIndex]);
+        gameUpdated = await this.transformGameData(gameUpdated, accountId);
+        
+        resultAnalysis.games[gameIndex] = JSON.parse(JSON.stringify(gameUpdated));
+        resultAnalysis.trophySummary = trophySummary;
+        resultAnalysis.renewAt = new Date(new Date().setHours(new Date().getHours() + 1));
+        resultAnalysis.lastAccessed = new Date();
+
+        await analyseRepository.updateById(new ObjectId(resultAnalysis._id), resultAnalysis);
+
+        returnAnalysis = resultAnalysis;
+      }
       
-      const allTitles = await this.getUserTitlesWithPagination(accountId, token);
-      console.log(`📚 Encontrados ${allTitles.length} jogos no total`);
-      
-      const games = await this.processGamesInBatches(allTitles, accountId, token);
-      
-      // Calcular estatísticas GOTY
-      const gotyStats = getGotyStats(games);
-      
-      // Gerar análise completa
-      const analysis = this.generateAnalysis(trophySummary, games, gotyStats);
-      
-      console.log('✅ Dados processados:', {
-        trophySummary: !!trophySummary,
-        gamesCount: games.length,
-        gotyStats: !!gotyStats,
-        analysis: !!analysis,
-        migueScore: analysis.migueScore,
-        platinumGames: analysis.platinumGames
+    } catch (error) {
+      console.error('💥 Erro ao atualizar jogo:', error);
+      throw error;
+    }
+
+    return returnAnalysis;
+  }
+
+  async getCompleteProfile(accountId: string): Promise<AnalysisData> {
+    try {
+
+      const token = await this.auth.getAccessToken();
+
+      if (!token) {
+        throw new Error('Erro ao obter token de autenticação');
+      }
+
+      // await metacriticScraper.scrapeMultiplePages(584);
+
+
+      this.GOTY_GAMES_DATABASE = await this.getGOTYGames();
+      const trophySummary = await this.getTrophySummary(accountId, token);
+
+      const allTitles = await this.getUserTitlesWithPaginationOld(accountId, token);
+
+      let allTitlesPurchased = await this.getUserTitlesWithPagination(accountId, token);
+
+      allTitlesPurchased = Array.from(new Set(allTitlesPurchased.map(item => (item["playCount"] || 0) > 0 ? item : null))).filter(item => item !== null);
+      allTitlesPurchased.forEach((game: GameTitle) => {
+        game.name = game.name
+            .replace(/ Trophies/g,'')
+            .replace(/Troféus do /g,'')
+            .replace(/ PS4™ e PS5™/g,'')
+            .replace(/ Trophy Set/g,'');
       });
-      
-      // Retornar estrutura plana (não aninhada)
-      return {
+
+      // Usado uma vez para fazer scraper da página do Metacritic
+      // const metacritcScraper = new MetacriticScraper();
+      // await metacritcScraper.scrapeMultiplePages(300);
+
+      allTitles.forEach((game: TrophyTitle) => {
+        const name = normalizeText(game.trophyTitleName);
+
+        let titleFinded = undefined;
+        const filtered = allTitlesPurchased
+          .filter((t: GameTitle) => t.category.toLocaleUpperCase().includes(game.trophyTitlePlatform))
+        
+        titleFinded = filtered.find((t: GameTitle) => {
+          if (this.normalizeText(t.name) === name ||
+            this.normalizeText(t.sortableName) === name ||
+            this.normalizeText(t.localizedName) === name ||
+            this.normalizeText(t.concept?.localizedName.metadata["en-US"]) === name) {
+              return t;
+            }
+        });
+
+        if (!titleFinded) {
+          titleFinded = filtered.find((t: GameTitle) => {
+            if (name.includes(this.normalizeText(t.name)) || 
+              t.name.includes(this.normalizeText(name))){
+                return t;
+              }
+          });
+        }
+
+        if (titleFinded) {
+          game.gameTitle = titleFinded;
+        } 
+      });
+
+      const games: TrophyTitle[] = await this.processGamesInBatches(allTitles, accountId, token);
+
+      const batchPromises = games.map((game) => {
+        return this.transformGameData(game, accountId);
+      });
+
+      const allGames = await Promise.all(batchPromises);
+
+      // Calcular estatísticas GOTY
+      const gotyStats = await this.getGotyStats(allGames);
+
+      // Gerar análise completa
+      const resultAnalysis = await this.generateAnalysis(trophySummary, allGames, gotyStats);
+
+      const psnUser: PSNUser = await new CacheService(accountId, 'users').getItem<PSNUser>();
+
+      const fullPsnProfile = await this.getUserProfile(psnUser.accountId);
+
+      if (fullPsnProfile && !psnUser.fullProfile) {
+        psnUser.fullProfile = fullPsnProfile;
+      }
+
+      await new CacheService(accountId, 'users').setItem(psnUser);
+
+      resultAnalysis.games.sort((a: TrophyTitle, b: TrophyTitle) => new Date(b.gameTitle?.lastPlayedDateTime || b.lastUpdatedDateTime).getTime() - new Date(a.gameTitle?.lastPlayedDateTime || a.lastUpdatedDateTime).getTime());
+
+      const dadosProcessados: AnalysisData = {
+        _cacheId: accountId,
         accountId,
+        username: psnUser.onlineId,
+        completionRate: resultAnalysis.completionRate,
+        games: resultAnalysis.games,
+        gotyStats: resultAnalysis.gotyStats,
+        migueScore: resultAnalysis.migueScore,
+        totalGames: resultAnalysis.totalGames,
         trophySummary,
-        games,
-        gotyStats,
-        analysis // Este campo contém as métricas calculadas
+        createdAt: new Date(),
+        renewAt: new Date(new Date().setHours(new Date().getHours() + 1)),
+        lastAccessed: new Date()
       };
+
+      return dadosProcessados;
     } catch (error) {
       console.error('💥 Erro ao buscar perfil:', error);
       throw error;
@@ -461,61 +265,72 @@ export class PSNTrophyService {
   }
 
   private async getTrophySummary(accountId: string, token: string): Promise<TrophySummary> {
-    console.log(`📈 Buscando sumário de troféus...`);
-    
-    const response = await fetch(
-      `https://m.np.playstation.com/api/trophy/v1/users/${accountId}/trophySummary`,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (PlayStation 4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0 Safari/605.1.15'
+
+    let trophySummary: TrophySummary | null = await trophySumaryRepository.findByAccountId(accountId);
+
+    if (!trophySummary || trophySummary?.renewAt < new Date()) {
+      
+      const response = await fetch(
+        `https://m.np.playstation.com/api/trophy/v1/users/${accountId}/trophySummary`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept-Language': 'pt-BR',
+            'User-Agent': 'Mozilla/5.0 (PlayStation 4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0 Safari/605.1.15'
+          }
         }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Erro ao buscar sumário: ${response.status} - ${errorText}`);
       }
-    );
 
-    console.log(`📥 Status sumário: ${response.status}`);
+      const data = await response.json();
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Erro ao buscar sumário: ${response.status} - ${errorText}`);
+      trophySummary = {
+        accountId,
+        trophyLevel: data.trophyLevel || 1,
+        trophyPoint: data.trophyPoint || 0,
+        trophyLevelBasePoint: data.trophyLevelBasePoint || 0,
+        trophyLevelNextPoint: data.trophyLevelNextPoint || 0,
+        progress: data.progress || 0,
+        tier: data.tier || 1,
+        renewAt: new Date(Date.now() + this.cacheTTL),
+        earnedTrophies: {
+          bronze: data.earnedTrophies?.bronze || 0,
+          silver: data.earnedTrophies?.silver || 0,
+          gold: data.earnedTrophies?.gold || 0,
+          platinum: data.earnedTrophies?.platinum || 0
+        },
+        totalTrophies: (data.earnedTrophies?.bronze || 0) +
+          (data.earnedTrophies?.silver || 0) +
+          (data.earnedTrophies?.gold || 0) +
+          (data.earnedTrophies?.platinum || 0)
+      };
+
+      
+      if (trophySummary) {
+          await trophySumaryRepository.updateById( trophySummary?._id as ObjectId, trophySummary);
+      } else {
+          await trophySumaryRepository.create(trophySummary);
+      }
     }
 
-    const data = await response.json();
-    
-    return {
-      accountId,
-      trophyLevel: data.trophyLevel || 1,
-      progress: data.progress || 0,
-      tier: data.tier || 1,
-      earnedTrophies: {
-        bronze: data.earnedTrophies?.bronze || 0,
-        silver: data.earnedTrophies?.silver || 0,
-        gold: data.earnedTrophies?.gold || 0,
-        platinum: data.earnedTrophies?.platinum || 0
-      },
-      totalTrophies: (data.earnedTrophies?.bronze || 0) + 
-                     (data.earnedTrophies?.silver || 0) + 
-                     (data.earnedTrophies?.gold || 0) + 
-                     (data.earnedTrophies?.platinum || 0)
-    };
+    return trophySummary;
   }
 
-  private async getUserTitlesWithPagination(accountId: string, token: string): Promise<TrophyTitle[]> {
-    console.log(`📖 Buscando títulos com paginação...`);
-    
+  private async getUserTitlesWithPaginationOld(accountId: string, token: string): Promise<TrophyTitle[]> {
+
     const allTitles: TrophyTitle[] = [];
     let offset = 0;
-    const limit = 100;
+    const limit = 200;
     let hasMore = true;
 
     while (hasMore) {
-      console.log(`↘️  Buscando página: offset=${offset}, limit=${limit}`);
-      
-      const url = `https://m.np.playstation.com/api/trophy/v1/users/${accountId}/trophyTitles?` + 
+      const url = `https://m.np.playstation.com/api/trophy/v1/users/${accountId}/trophyTitles?` +
         new URLSearchParams({
-          'fields': '@default,trophyCount,earnedTrophies,progress',
-          'npLanguage': 'pt-BR',
           'offset': offset.toString(),
           'limit': limit.toString()
         });
@@ -524,6 +339,7 @@ export class PSNTrophyService {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
+          'Accept-Language': 'pt-BR',
           'User-Agent': 'Mozilla/5.0 (PlayStation 4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0 Safari/605.1.15'
         }
       });
@@ -535,21 +351,101 @@ export class PSNTrophyService {
 
       const data = await response.json();
       const titles = data.trophyTitles || [];
-      
-      console.log(`📄 Página retornou: ${titles.length} títulos`);
-      
-      const validTitles = titles.filter((title: TrophyTitle) => 
-        title.definedTrophies?.bronze > 0 || 
-        title.definedTrophies?.silver > 0 || 
-        title.definedTrophies?.gold > 0 || 
-        title.definedTrophies?.platinum > 0
-      );
 
-      allTitles.push(...validTitles);
-      
+      allTitles.push(...data.trophyTitles);
+
       if (titles.length < limit) {
         hasMore = false;
-        console.log(`✅ Fim da paginação. Total: ${allTitles.length} títulos`);
+      } else {
+        offset += limit;
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+
+    return allTitles;
+  }
+
+
+  private async getGameTrophyListFromTitleId(accountId: string, token: string, titleId: string): Promise<TrophyGroup[]| undefined> {
+    const url = `https://m.np.playstation.com/api/trophy/v1/users/${accountId}/titles/trophyTitles?` +
+        new URLSearchParams({
+          'npTitleIds': titleId,
+        });
+
+      const response =  await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept-Language': 'pt-BR',
+          'User-Agent': 'Mozilla/5.0 (PlayStation 4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0 Safari/605.1.15'
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Erro paginado ao buscar títulos: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+
+      if (data.titles) {
+        return data.titles;
+      }
+
+      return undefined;
+
+  } 
+  private async getGameTrophyList(accountId: string, token: string, game: TrophyTitle): Promise<TrophyTitle> {
+    
+    if (game.gameTitle && game.gameTitle?.titleId) {
+      const trophyGroups = await this.getGameTrophyListFromTitleId(accountId, token, game.gameTitle.titleId);
+
+      if (trophyGroups) {
+        game.trophyGroups = trophyGroups;
+      }
+    }
+
+    return game;
+  }
+
+  private async getUserTitlesWithPagination(accountId: string, token: string): Promise<GameTitle[]> {
+    const allTitles: GameTitle[] = [];
+    let offset = 0;
+    const limit = 200;
+    let hasMore = true;
+
+    while (hasMore) {
+      const url = `https://m.np.playstation.com/api/gamelist/v2/users/${accountId}/titles?` +
+        new URLSearchParams({
+          'offset': offset.toString(),
+          'limit': limit.toString()
+        });
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept-Language': 'pt-BR',
+          'User-Agent': 'Mozilla/5.0 (PlayStation 4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0 Safari/605.1.15'
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Erro paginado ao buscar títulos: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      const titles = data.titles || [];
+
+      
+      const validTitles = titles.filter((title: GameTitle) => !['ps4_nongame_mini_app', 'ps5_native_media_app'].includes(title.category));
+
+      allTitles.push(...validTitles);
+
+      if (titles.length < limit) {
+        hasMore = false;
+        
       } else {
         offset += limit;
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -560,30 +456,28 @@ export class PSNTrophyService {
   }
 
   private async processGamesInBatches(
-    titles: TrophyTitle[], 
-    accountId: string, 
+    titles: TrophyTitle[],
+    accountId: string,
     token: string
-  ): Promise<any[]> {
-    console.log(`⚡ Processando ${titles.length} jogos em lotes paralelos...`);
+  ): Promise<TrophyTitle[]> {
     
-    const batchSize = 5;
-    const games: any[] = [];
+    const batchSize = 100;
+    const games: TrophyTitle[] = [];
 
     for (let i = 0; i < titles.length; i += batchSize) {
       const batch = titles.slice(i, i + batchSize);
-      console.log(`🔄 Processando lote ${Math.floor(i/batchSize) + 1}: ${batch.length} jogos`);
       
-      const batchPromises = batch.map(title => 
-        this.transformGameData(title)
-      );
-      
+      const batchPromises = batch.map((title) => {
+        return this.getGameTrophyList(accountId, token, title);
+      });
+
       const batchResults = await Promise.allSettled(batchPromises);
-      
+
       batchResults.forEach((result, index) => {
         if (result.status === 'fulfilled') {
           games.push(result.value);
         } else {
-          console.warn(`⚠️  Erro ao processar jogo ${batch[index].trophyTitleName}:`, result.reason);
+          console.warn(`⚠️  Erro ao processar jogo ${batch[index].gameTitle.localizedName}:`, result.reason);
         }
       });
 
@@ -592,120 +486,426 @@ export class PSNTrophyService {
       }
     }
 
-    console.log(`✅ Processamento concluído: ${games.length} jogos processados`);
     return games;
   }
 
-  private transformGameData(title: TrophyTitle) {
-    const hasPlatinum = title.earnedTrophies.platinum > 0;
-    const completionRate = title.progress;
-    
-    const totalTrophies = Object.values(title.definedTrophies).reduce((a, b) => a + b, 0);
-    const earnedTrophies = Object.values(title.earnedTrophies).reduce((a, b) => a + b, 0);
-    
-    const rarity = this.calculateRarity(completionRate, earnedTrophies);
-    const difficulty = this.calculateDifficulty(completionRate, rarity);
-    
-    // Usar a nova função isGotyGame
-    const gotyMatch = isGotyGame(title.trophyTitleName);
+  private async transformGameData(game: TrophyTitle, accountId: string): Promise<TrophyTitle> {
+    try {
+      const completionRate = game.progress;
 
-    return {
-      title: title.trophyTitleName,
-      platform: title.trophyTitlePlatform,
-      trophyCount: title.definedTrophies,
-      earnedTrophies: title.earnedTrophies,
-      progress: completionRate,
-      lastPlayed: new Date(title.lastUpdatedDateTime),
-      genre: this.determineGenre(title.trophyTitleName),
-      timeToPlatinum: this.estimateTimeToPlatinum(totalTrophies, completionRate),
-      metacriticScore: this.getMetacriticScore(title.trophyTitleName),
-      isGoty: gotyMatch.isGoty,
-      gotyData: gotyMatch.gameData, // Incluir dados completos do GOTY
-      difficulty,
-      rarity,
-      hasPlatinum,
-      completionPercentage: completionRate,
-      isRare: rarity < 20,
-      isHighDifficulty: difficulty >= 7,
-      totalTrophies,
-      npCommunicationId: title.npCommunicationId,
-      trophyTitleIconUrl: title.trophyTitleIconUrl
-    };
+      const totalTrophies = Object.values(game.definedTrophies).reduce((a, b) => a + b, 0);
+      const earnedTrophies = Object.values(game.earnedTrophies).reduce((a, b) => a + b, 0);
+
+      const rarity = this.calculateRarity(completionRate, earnedTrophies);
+      const difficulty = this.calculateDifficulty(completionRate, rarity);
+
+      const gameNameTitle: string = (game?.gameTitle?.localizedName || game.trophyTitleName);
+
+      // Usar a nova função isGotyGame
+      const gotyMatch = this.isGotyGame(gameNameTitle);
+
+      const metacriticGame = await metacriticScraper.getMetacritcGame(gameNameTitle, game.npCommunicationId);
+
+      // pega todos ps grupos de Troféus (DLCs)
+      const trophyGroups = await this.getGameTrophyGroups(game.npCommunicationId, game.npServiceName);
+
+      game.trophyGroups = trophyGroups;
+      game.metacritc = metacriticGame;
+      game.isGoty = gotyMatch.isGoty;
+      game.gotyData = gotyMatch.gameData || null;
+
+      for (const group of game.trophyGroups) {
+        const userTrophies: TrophyDetail[] = await this.getUserGroupTrophiesForGame(
+          accountId,
+          game.npCommunicationId,
+          group.trophyGroupId,
+          game.npServiceName
+        );
+
+        const gameTrophies: TrophyDetail[] = await this.getGroupTrophiesForGame(
+          game.npCommunicationId,
+          group.trophyGroupId,
+          game.npServiceName
+        );
+
+        group.trophies = gameTrophies;
+
+        group.trophies.forEach((trophy: TrophyDetail) => {
+          const userTrophyItem: TrophyDetail = userTrophies.find((trophyDetail: TrophyDetail) => trophyDetail.trophyId === trophy.trophyId)!;
+
+
+          if (userTrophyItem) {
+            trophy.trophyHidden = userTrophyItem.trophyHidden;
+            trophy.earned = userTrophyItem.earned;
+            trophy.progress = userTrophyItem.progress || 0;
+            trophy.progressRate = userTrophyItem.progressRate || 0;
+            trophy.progressedDateTime = userTrophyItem.progressedDateTime || null;
+            trophy.trophyRare = userTrophyItem.trophyRare;
+            trophy.trophyEarnedRate = userTrophyItem.trophyEarnedRate;
+            trophy.earnedDateTime = userTrophyItem.earnedDateTime;
+          }
+        });
+
+        group.earnedTrophies = {
+          bronze: group.trophies.filter(trophy => trophy.earned && trophy.trophyType === 'bronze').length,
+          silver: group.trophies.filter(trophy => trophy.earned && trophy.trophyType === 'silver').length,
+          gold: group.trophies.filter(trophy => trophy.earned && trophy.trophyType === 'gold').length,
+          platinum: group.trophies.filter(trophy => trophy.earned && trophy.trophyType === 'platinum').length
+        }
+
+        group.progress = (group.trophyGroupId === 'default' && game.trophyGroups.length <= 1) 
+          ? game.progress 
+          : this.calculateGroupProgress(group.trophies);
+      }
+
+      if (game.gameTitle !== null && game.gameTitle !== undefined) {
+        game.gameTitle.platform = game.trophyTitlePlatform || this.getPlatform(game?.gameTitle?.category);
+
+        const hasPlatinum = game.earnedTrophies.platinum > 0 || game.gameTitle?.hasPlatinum || game.progress === 100 || false;
+        const estimatedTimeToPlatinum = this.estimateTimeToPlatinum(totalTrophies);
+        const hoursPlayed = toDecimalHours(game.gameTitle.playDuration);
+        const platinumTime = estimatedTimeToPlatinum > hoursPlayed ? hoursPlayed : estimatedTimeToPlatinum;
+        
+        game.gameTitle.timeToPlatinum = platinumTime;
+        game.gameTitle.estimatedTimeToPlatinum = estimatedTimeToPlatinum;
+        game.gameTitle.metacriticScore = metacriticGame?.metascore || 0;
+        game.gameTitle.difficulty = difficulty;
+        game.gameTitle.rarity = rarity;
+        game.gameTitle.hasPlatinum = hasPlatinum;
+        game.gameTitle.completionPercentage = completionRate;
+        game.gameTitle.isRare = rarity < 20;
+        game.gameTitle.isHighDifficulty = difficulty >= 7;
+        game.gameTitle.totalTrophies = totalTrophies;
+        game.gameTitle.trophyCount = totalTrophies;
+        game.gameTitle.npCommunicationId = game.npCommunicationId;
+        game.gameTitle.earnedTrophies = game.earnedTrophies;
+      }
+
+      const gameSaved = await this.saveGameToRepository({ ...game });
+
+      game.trophyTitleIconUrl = gameSaved.trophyTitleIconUrl;
+      game.trophyTitleName = gameSaved.trophyTitleName;
+      game.backgroundImage = gameSaved.backgroundImage;
+      game.heroImage = gameSaved.heroImage;
+      game.logoImage = gameSaved.logoImage;
+
+    } catch (error) {
+      console.error(`⚠️ [transformGameData] Erro ao processar jogo ${game.trophyTitleName}:`, error);
+      return game;
+    }
+
+    return game;
+  }
+  async saveGameToRepository(game: TrophyTitle) {
+
+    const stringify = JSON.stringify(game);
+    const gameData: TrophyTitle = JSON.parse(stringify);
+
+    // removendo características dinâmicas antes de salvar
+    if (gameData.gameTitle) {
+      gameData.gameTitle.earnedTrophies = { bronze: 0, silver: 0, gold: 0, platinum: 0 };
+      gameData.gameTitle.hasPlatinum = false;
+      gameData.gameTitle.completionPercentage = 0;
+      gameData.gameTitle.timeToPlatinum = 0;
+      gameData.gameTitle.firstPlayedDateTime = '';
+      gameData.gameTitle.lastPlayedDateTime = '';
+      gameData.gameTitle.playDuration = '';
+    }
+
+    gameData.earnedTrophies = { bronze: 0, silver: 0, gold: 0, platinum: 0 };
+    gameData.progress = 0;
+    
+
+    for (const trophyGroup of gameData.trophyGroups) {
+      trophyGroup.trophies.forEach((trophy: TrophyDetail) => {
+        trophy.earned = false;
+        trophy.progress = 0;
+        trophy.progressRate = 0;
+        trophy.progressedDateTime = null;
+        trophy.earnedDateTime = null;
+      });
+    }
+
+    const existingGame = await gameRepository.findByNpCommunicationId(gameData.npCommunicationId);
+
+    const images = await gameRepository.getBackgroundImages(gameData);
+
+    if (images && !existingGame?.backgroundImage ) {
+      gameData.backgroundImage = images.backgroundImage;
+      gameData.heroImage = images.heroImage;
+      gameData.logoImage = images.logoImage;
+    }
+
+    if (existingGame) {
+
+      const bgImage = await gameRepository.getBackgroundImages(existingGame)
+
+      gameData.trophyTitleName = existingGame?.trophyTitleName;
+      gameData.trophyTitleIconUrl = existingGame?.trophyTitleIconUrl;
+      gameData.backgroundImage = bgImage.backgroundImage || images.backgroundImage;
+      gameData.heroImage = bgImage.heroImage || images.heroImage;
+      gameData.logoImage = bgImage.logoImage || images.logoImage;
+
+      gameRepository.updateById(existingGame._id, gameData);
+    } else {
+      gameRepository.create(gameData);
+    }
+
+    return gameData;
   }
 
-  private generateAnalysis(trophySummary: TrophySummary, games: any[], gotyStats: any) {
+  getEarnedTrophyPoints(trophies: TrophyDetail[]): number {
+    let totalPoints = 0;
+
+    for (const trophy of trophies) {
+      if (trophy.trophyType != 'platinum' && trophy.earned) {
+        const pointsPerTrophy = this.getPointsPerTrophy(
+          trophy.trophyType as keyof DefinedTrophies,
+        );
+        totalPoints += pointsPerTrophy;
+      }
+    }
+
+    return totalPoints;
+  }
+
+  getTotalTrophyPoints(trophies: TrophyDetail[]): number {
+    let totalPoints = 0;
+    for (const trophy of trophies) {
+      const pointsPerTrophy = this.getPointsPerTrophy(
+          trophy.trophyType as keyof DefinedTrophies,
+        );
+      totalPoints += pointsPerTrophy;
+    }
+    return totalPoints;
+  }
+  
+  getPointsPerTrophy(trophyType: keyof DefinedTrophies): number {
+    switch (trophyType) {
+      case "bronze":
+        return 15;
+      case "silver":
+        return 30;
+      case "gold":
+        return 90;
+      default:
+        return 0;
+    }
+  }
+
+  calculateGroupProgress(trophies: TrophyDetail[]): number {
+    // const total = trophies.length;
+    // const earned = trophies.filter(t => t.earned).length;
+    // return (earned / total) * 100;
+    const earnedPoints = this.getEarnedTrophyPoints(trophies);
+    const totalPoints = this.getTotalTrophyPoints(trophies);
+    
+    return Math.trunc((earnedPoints / totalPoints) * 100);
+  }
+
+  async getGroupTrophiesForGame(npCommunicationId: string, trophyGroupId: string, npServiceName: string): Promise<TrophyDetail[]> {
+
+    const dataResponse = await gameRepository.findByNpCommunicationId(npCommunicationId);
+
+    if (!dataResponse) {
+      const token = await this.auth.getAccessToken();
+      const extraParams = `?npServiceName=${npServiceName}&limit=500`;
+
+      const response = await fetch(
+        `https://m.np.playstation.com/api/trophy/v1/npCommunicationIds/${npCommunicationId}/trophyGroups/${trophyGroupId}/trophies${extraParams}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept-Language': 'pt-BR',
+            'User-Agent': 'Mozilla/5.0 (PlayStation 4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0 Safari/605.1.15'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        console.error(`❌ Erro ao buscar troféus do jogo ${npCommunicationId}: ${response.status}`);
+      }
+      
+      const data: TrophyGroup = await response.json();
+
+      return data?.trophies || [];
+    }
+
+    return dataResponse?.trophyGroups?.find((group) => group.trophyGroupId === trophyGroupId)?.trophies || [];
+  }
+
+  getPlatform(category: string): string {
+    switch (category) {
+      case 'ps5_native_game':
+        return 'PS5';
+      case 'ps4_game':
+        return 'PS4';
+      case 'pspc_game':
+        return 'PC';
+      default:
+        return 'unknown';
+    }
+  }
+
+  async getUserGroupTrophiesForGame(accountId: string, npCommunicationId: string, trophyGroupId: string = 'default', npServiceName: string): Promise<TrophyDetail[]> {
+    const token = await this.auth.getAccessToken();
+    const extraParams = `?npServiceName=${npServiceName}&limit=500`;
+    // corrigido
+
+    const response = await fetch(
+      `https://m.np.playstation.com/api/trophy/v1/users/${accountId}/npCommunicationIds/${npCommunicationId}/trophyGroups/${trophyGroupId}/trophies${extraParams}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept-Language': 'pt-BR',
+        }
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Erro ao buscar troféus do usuário: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.trophies || [];
+  }
+
+  private async generateAnalysis(trophySummary: TrophySummary, games: TrophyTitle[], gotyStats: GotyStats) {
     // Garantir que games seja um array
     const safeGames = Array.isArray(games) ? games : [];
-    
-    const completedGames = safeGames.filter(game => game && game.completionPercentage === 100).length;
-    const platinumGames = safeGames.filter(game => game && game.hasPlatinum).length;
-    const rareGames = safeGames.filter(game => game && game.isRare).length;
-    const highDifficultyGames = safeGames.filter(game => game && game.isHighDifficulty).length;
-    
+
+    const completedGames = safeGames.filter(game => game.progress === 100).length;
+    const platinumGames = trophySummary.earnedTrophies.platinum;
+    const platinumFromList = safeGames.filter(game => game.earnedTrophies.platinum === 1).length;
+    const platinumGames100 = safeGames.filter(game => game.gameTitle?.hasPlatinum && game.progress === 100).length;
+    const platinasOcultas = (platinumGames - platinumFromList) < 0 ? 0 : (platinumGames - platinumFromList);
+    const highDifficultyGames = safeGames.filter(game => game.progress === 100 && game.gameTitle?.difficulty || 0 >= 8).length;
+    const highMetacriticScoreGames = safeGames.filter(game => game.gameTitle?.metacriticScore >= 80).length;
+
+    const trophyGroups = safeGames.flatMap(game => game.trophyGroups || []);
+    const platinumTrophies = trophyGroups.flatMap(group => group.trophies.filter(trophy => trophy.earned && trophy.trophyType === 'platinum'));
+
+    const platinumGroupScore = platinumTrophies.reduce((acc, trophy) => {
+      const trophyEarnedRate = Math.floor(trophy.trophyEarnedRate * 10);
+      let points = 0;
+      if (trophyEarnedRate >= 91) points = 1;
+      else if (trophyEarnedRate >= 81 && trophyEarnedRate <= 90) points = 2;
+      else if (trophyEarnedRate >= 71 && trophyEarnedRate <= 80) points = 5;
+      else if (trophyEarnedRate >= 51 && trophyEarnedRate <= 70) points = 7;
+      else if (trophyEarnedRate >= 31 && trophyEarnedRate <= 50) points = 10;
+      else if (trophyEarnedRate <= 30) points = 20;
+
+      const key = `${points}`;
+      return {
+        ...acc,
+        [key]: (acc[key] || 0) + 1
+      };
+    }, {} as Record<string, number>);
+
+
+    const platinumData: UserPlatinumData = getPlatinumCountsFromTrophies(platinumTrophies);
+
+    platinumData.platinumCounts.hidden = platinasOcultas;
+
     // Calcular score Mi Mi Mi baseado em múltiplos fatores
     const migueScore = this.calculateMigueScore({
       trophyLevel: trophySummary.trophyLevel || 1,
       platinumCount: platinumGames,
+      platinumCount100: platinumGames100,
+      platinumGroupScore,
+      platinumData,
       totalGames: games.length,
       completionRate: safeGames.length > 0 ? (completedGames / safeGames.length) * 100 : 0,
-      rareGamesCount: rareGames,
-      gotyGames: gotyStats?.totalGotyGames || 0,
-      highDifficultyGames: highDifficultyGames
+      platinasOcultas: platinasOcultas,
+      completedGames,
+      highDifficultyGames,
+      highMetacriticScoreGames
     });
 
-    return {
+    const profileAnalisys = {
       migueScore,
-      completedGames,
-      platinumGames,
-      rareGames,
-      highDifficultyGames,
       gotyStats,
       totalGames: safeGames.length,
-      completionRate: safeGames.length > 0 ? (completedGames / safeGames.length) * 100 : 0
+      completionRate: safeGames.length > 0 ? (completedGames / safeGames.length) * 100 : 0,
+      games: safeGames,
+      trophySummary,
     };
+
+    return profileAnalisys;
   }
 
-  private calculateMigueScore(factors: {
-    trophyLevel: number;
-    platinumCount: number;
-    totalGames: number;
-    completionRate: number;
-    rareGamesCount: number;
-    gotyGames: number;
-    highDifficultyGames: number;
-  }): number {
+  public calculateMigueScore(factors: ScoringFactors): ScoreBreakdown {
     const {
-      trophyLevel,
       platinumCount,
-      totalGames,
+      platinumCount100,
+      platinumGroupScore,
+      platinumData,
       completionRate,
-      rareGamesCount,
-      gotyGames,
-      highDifficultyGames
+      completedGames,
+      platinasOcultas,
+      highDifficultyGames,
+      highMetacriticScoreGames
     } = factors;
 
-    let score = 0;
+    let totalScore = 0;
 
     // Level de troféus (máx 20 pontos)
-    score += Math.min(trophyLevel * 2, 20);
+    // const trophyScore = Math.min(trophyLevel * 2, 20);
 
     // 1. PLATINAS (30 pontos): Taxa de platinas = (platinas conquistadas ÷ total de jogos) × 100
-    const platinumRate = (platinumCount / totalGames) * 100;
-    score += Math.min(platinumRate, 100) * 0.3; // 30 pontos no máximo
+    const platinasScore: NormalizedScore = calculateNormalizedScore(platinumData as UserPlatinumData);
 
-    // 2. COMPLETUDE (20 pontos): % de completude média do perfil × 0.2
-    score += Math.min(completionRate, 100) * 0.2;
+    // 2. COMPLETUDE (30 pontos): % de completude média do perfil × 0.3
+    const completudeScore = Number((Math.min(completionRate, 100) * 0.3).toFixed(1));
 
-    // 3. PLATINAS RARAS (20 pontos): Platinas com raridade < 20% no PSN (cada = 2 pontos)
-    score += Math.min(rareGamesCount * 2, 20);
+    // 5. ALTA DIFICULDADE (20 pontos): Jogos com dificuldade 8/10+
+    const highDifficultyScore = Number((Math.min(highDifficultyGames, 20)).toFixed(1));
 
-    // 4. JOGOS GOTY (15 pontos): Jogos que ganharam Game of The Year (cada = 3 pontos)
-    score += Math.min(gotyGames * 3, 15);
+    // 6. NOTA METACRITIC >= 80 (20 pontos): Jogos com avaliação 80+
+    const metacriticRate = Number((highMetacriticScoreGames / 10).toFixed(1));
+    const highMetacriticScore = Number((Math.min(metacriticRate, 20).toFixed(1))); // 20 pontos no máximo
 
-    // 5. ALTA DIFICULDADE (15 pontos): Jogos com dificuldade 7/10+ (cada = 2 pontos)
-    score += Math.min(highDifficultyGames * 2, 15);
+    // totalScore = Math.min(platinasScore.pontuacaoMigueScore + completudeScore + highDifficultyScore + highMetacriticScore, 100);
+    totalScore = Math.min(platinasScore.normalizedScore + completudeScore + highDifficultyScore + highMetacriticScore, 100);
 
-    return Math.min(Math.round(score), 100);
+    // Classificação Mi Mi Mi
+    let classification, emoji, description;
+
+    if (totalScore <= 40) {
+      classification = "MIADO";
+      emoji = "class-sprite level-1";
+      description = "Foco em platinas fáceis, jogos simples, baixa completude";
+    } else if (totalScore <= 70) {
+      classification = "MIGUÉ";
+      emoji = "class-sprite level-2";
+      description = "Equilíbrio entre dificuldade e variedade, alguns jogos difíceis";
+    } else if (totalScore <= 90) {
+      classification = "MISERÊ";
+      emoji = "class-sprite level-3";
+      description = "Completude alta, jogos GOTY, alta dificuldade (8/10+)";
+    } else {
+      classification = "MISERAVÃO";
+      emoji = "class-sprite level-4";
+      description = "Lenda do trophy hunting, perfil excepcional em todos os aspectos";
+    }
+
+    return {
+      totalScore: totalScore,
+      completudeScore: completudeScore,
+      completedGames: completedGames,
+      platinasScore: platinasScore,
+      platinumData: platinumData,
+      platinas100: platinumCount100,
+      platinasOcultas: platinasOcultas,
+      platinasRazao: (platinumCount100 - platinasOcultas) / platinumCount,
+      highDifficultyScore: highDifficultyScore,
+      highMetacriticScore: highMetacriticScore,
+      emoji: emoji,
+      classification: classification,
+      description: description
+    };
   }
 
   private calculateRarity(progress: number, earnedTrophies: number): number {
@@ -755,35 +955,258 @@ export class PSNTrophyService {
     return 'Other';
   }
 
-  private estimateTimeToPlatinum(totalTrophies: number, progress: number): number {
-    if (progress < 100) return 0;
-    
+  private estimateTimeToPlatinum(totalTrophies: number): number {
     if (totalTrophies <= 15) return 10;
     if (totalTrophies <= 25) return 20;
     if (totalTrophies <= 40) return 35;
     if (totalTrophies <= 60) return 50;
+
     return 80;
   }
 
-  private getMetacriticScore(gameTitle: string): number {
-    const scores: { [key: string]: number } = {
-      'the last of us': 95, 'god of war': 94, 'bloodborne': 92,
-      'persona 5': 93, 'hollow knight': 90, 'elden ring': 96,
-      'spider-man': 87, 'horizon': 89, 'uncharted': 93,
-      'ghost of tsushima': 83, 'returnal': 86, 'ratchet & clank': 88,
-      'final fantasy': 87, 'witcher': 93, 'red dead redemption': 97
+  // Simple in-memory cache implementation[citation:2]
+  public getFromCache<T>(key: string): T | null {
+    const item = this.cache.get(key);
+    if (!item) return null;
+
+    if (Date.now() > item.expiry) {
+      this.cache.delete(key);
+      return null;
+    }
+
+    return item.data;
+  }
+
+  public setToCache<T>(key: string, data: T): void {
+    const expiry = Date.now() + this.cacheTTL;
+    this.cache.set(key, { data, expiry });
+  }
+
+  public clearCache(): void {
+    this.cache.clear();
+  }
+
+  // Database operation with caching
+  public async getGOTYGames(): Promise<GOTYGame[]> {
+    const cacheKey = 'goty_games_all';
+
+    // Try to get from cache first
+    const cached = this.getFromCache<GOTYGame[]>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    // If not in cache, fetch from database
+    const client = new MongoClient(process.env.MONGODB_URI!);
+
+    try {
+      await client.connect();
+      const database = client.db();
+      const gotyCollection = database.collection<GOTYGame>('goty_games');
+
+      const games = await gotyCollection.find({}).sort({ year: -1 }).toArray();
+
+      // Store in cache
+      this.setToCache(cacheKey, games);
+
+      return games;
+    } finally {
+      console.log('Closing database connection');
+    }
+  }
+
+  public async getGOTYGameById(id: string): Promise<GOTYGame | null> {
+    const cacheKey = `goty_game_${id}`;
+
+    const cached = this.getFromCache<GOTYGame>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const client = new MongoClient(process.env.MONGODB_URI!);
+
+    try {
+      await client.connect();
+      const database = client.db();
+      const gotyCollection = database.collection<GOTYGame>('goty_games');
+
+      const game = await gotyCollection.findOne({ id });
+
+      if (game) {
+        this.setToCache(cacheKey, game);
+      }
+
+      return game;
+    } finally {
+      await client.close();
+    }
+  }
+
+  public async searchGOTYGames(query: string): Promise<GOTYGame[]> {
+    const cacheKey = `goty_search_${query.toLowerCase()}`;
+
+    const cached = this.getFromCache<GOTYGame[]>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const client = new MongoClient(process.env.MONGODB_URI!);
+
+    try {
+      await client.connect();
+      const database = client.db();
+      const gotyCollection = database.collection<GOTYGame>('goty_games');
+
+      const games = await gotyCollection.find({
+        name: { $regex: query, $options: 'i' }
+      }).toArray();
+
+      this.setToCache(cacheKey, games);
+
+      return games;
+    } finally {
+      await client.close();
+    }
+  }
+
+  // Method to manually refresh cache if needed
+  public refreshCache(): void {
+    this.clearCache();
+  }
+
+  // Nova implementação otimizada do isGotyGame
+  public isGotyGame(gameTitle: string): GotyMatchResult {
+    const normalizedTitle = normalizeText(gameTitle);
+
+
+    const normalizedDatabase = this.GOTY_GAMES_DATABASE.flatMap(game =>
+      game.search_terms.map(title => normalizeText(title)) &&
+      game.alternative_titles.map(title => normalizeText(title)) &&
+      normalizeText(game.titulo)
+    );
+
+    if (normalizedDatabase.includes(normalizedTitle)) {
+      return {
+        isGoty: true,
+        matchType: 'exact',
+        gameData: this.GOTY_GAMES_DATABASE.find(game => normalizeText(game.titulo) === normalizedTitle),
+        confidence: 1
+      };
+    }
+
+    return {
+      isGoty: false,
+      matchType: 'none',
+      confidence: 0
     };
-    
-    for (const [key, score] of Object.entries(scores)) {
-      if (gameTitle.toLowerCase().includes(key)) {
-        return score;
+  }
+
+  public async getGotyStats(games: TrophyTitle[]): Promise<GotyStats> {
+    const gotyGames: Array<GOTYGame & { userGame: any }> = [];
+    const byYear: { [year: number]: number } = {};
+    let totalGotyGames = 0;
+    let completionRate = 0;
+
+    for (const game of games) {
+      const match = this.isGotyGame(game.trophyTitleName);
+      if (match.gameData) {
+        // Verificar se o jogo já foi adicionado (evitar duplicatas)
+        const gameAlreadyAdded = gotyGames.some(gotyGame =>
+          gotyGame.titulo === match.gameData!.titulo
+        );
+
+        if (!gameAlreadyAdded) {
+          gotyGames.push({
+            ...match.gameData,
+            userGame: game,
+          });
+
+          // Estatísticas por ano
+          const year = match.gameData.ano_premiacao;
+          byYear[year] = (byYear[year] || 0) + 1;
+        }
+        totalGotyGames++;
       }
     }
-    
-    return 75;
+
+    const completedGames = gotyGames.filter(g => g.userGame.progress >= 100).length;
+
+    completionRate = totalGotyGames > 0
+      ? (gotyGames.filter(g => g.userGame.progress >= 100).length / totalGotyGames) * 100
+      : 0;
+
+    return {
+      totalGotyGames,
+      gotyGames,
+      completionRate,
+      completedGames: completedGames,
+      byYear
+    };
+  }
+
+  public async getUserProfile(accountId: string): Promise<SocialMetadata | null> {
+    let fullProfile: SocialMetadata | null = null;
+
+    try {
+      const token = await this.auth.getAccessToken();
+
+      if (!token) {
+        throw new Error('Token de autenticação nulo');
+      }
+
+      const response = await fetch(
+        `https://m.np.playstation.com/api/userProfile/v1/internal/users/${accountId}/profiles`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept-Language': 'pt-BR',
+            'User-Agent': 'Mozilla/5.0 (PlayStation 4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0 Safari/605.1.15'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Erro ao buscar sumário: ${response.status} - ${errorText}`);
+      }
+
+      fullProfile = await response.json();
+
+      
+    } catch (error) {
+      console.error('Erro ao buscar dados do perfil:', error);
+    }
+
+    return fullProfile;
+  }
+
+  async getGameTrophyGroups(npCommunicationId: string, npServiceName: string = 'trophy'): Promise<TrophyGroup[]> {
+    const token = await this.auth.getAccessToken();
+    const extraParams = `?npServiceName=${npServiceName}`;
+
+    const response = await fetch(
+      `https://m.np.playstation.com/api/trophy/v1/npCommunicationIds/${npCommunicationId}/trophyGroups${extraParams}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept-Language': 'pt-BR',
+        }
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Erro ao buscar grupos de troféus: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    return data.trophyGroups || [];
   }
 }
 
-// Exportar funções auxiliares para uso externo
-export { isGotyGame, getGotyStats, GOTY_GAMES_DATABASE };
-export type { GotyGame, GotyMatchResult };
+export type { GOTYGame, GotyMatchResult, ScoreBreakdown, ScoringFactors, TrophySummary, TrophyTitle };
+export const TrophyService = new PSNTrophyService();

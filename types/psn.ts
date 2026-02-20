@@ -1,3 +1,5 @@
+import { ObjectId } from "mongodb";
+
 export interface Trophy {
   isEarned: boolean;
   earnedOn: string;
@@ -8,24 +10,87 @@ export interface Trophy {
   groupId: string;
 }
 
-export interface PlayerProfile {
+export interface PSNUser {
+  _id?: ObjectId;
+  _cacheId: string;
   accountId: string;
-  username: string;
-  games: Game[];
-  totalStats: {
-    games: number;
-    platinums: number;
-    gold: number;
-    silver: number;
-    bronze: number;
-    totalTrophies: number;
-    completionRate: number;
-    efficiency: number;
-    psnpScore: number;
-  };
-  playerArchetype: string;
-  score: number;
-  category: string;
+  onlineId?: string;
+  fullProfile?: SocialMetadata;
+  lastAnalysisId?: string;
+  userPresence?: UserPresence;
+}
+
+export interface UserPresence   {
+  onlineStatus: string;
+  platform: string,
+  lastOnlineDate: Date
+}
+
+export interface ProfilePictures {
+  size: [ "s", "m", "l", "xl" ];
+  url: string;
+}
+
+export interface PersonalDetail {
+  firstName?: string;
+  lastName?: string;
+  displayName?: string;
+  profilePictures: ProfilePictures[];
+}
+
+export interface ImageList {
+  size: [ "s", "m", "l", "xl" ];
+  url: string
+}
+
+export interface SocialMetadata {
+  onlineId: string;
+  personalDetail: PersonalDetail;
+  aboutMe: string;
+  avatars: [ImageList],
+  languages: [string];
+  isPlus: boolean;
+  isOfficiallyVerified: boolean;
+  isMe: boolean;
+}
+
+export interface Result {
+    id: string;
+    type: string;
+    score: number;
+    socialMetadata: SocialMetadata;
+    relevancyScore: number;
+}
+
+export interface DomainResponse {
+    domain: string;
+    domainTitle: string;
+    domainExpandedTitle: string;
+    domainTitleMessageId: string;
+    domainTitleHighlight: string[];
+    zeroState: boolean;
+    next: string;
+    totalResultCount: number;
+    results: Result[];
+}
+
+export interface ResponseData {
+    prefix: string;
+    domainResponses: DomainResponse[];
+    responseStatus: Array<{
+        status: string;
+        statusMessage: string;
+    }>;
+    strandPaginationResponse: {
+        pageSize: number;
+        offset: number;
+        lastPage: boolean;
+    };
+    fallbackQueried: boolean;
+    queryFrequency: {
+        searchDebounceMs: number;
+        filterDebounceMs: number;
+    };
 }
 
 export interface PlayerProfile {

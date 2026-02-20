@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apple Glass Effect | Tailwind CSS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'float': 'float 3s ease-in-out infinite',
+                        'pulse-glow': 'pulseGlow 2s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' }
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' }
+                        },
+                        pulseGlow: {
+                            '0%, 100%': { boxShadow: '0 0 20px rgba(255, 255, 255, 0.1)' },
+                            '50%': { boxShadow: '0 0 30px rgba(255, 255, 255, 0.2)' }
+                        }
+                    },
+                    backdropBlur: {
+                        xs: '2px',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        
+        /* Estilos personalizados para o efeito glass avançado */
+        .glass-advanced {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.125);
+            box-shadow: 
+                0 8px 32px 0 rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+        }
+        
+        .glass-dark {
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(25px) saturate(200%);
+            -webkit-backdrop-filter: blur(25px) saturate(200%);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 
+                0 10px 40px 0 rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(15px) saturate(160%);
+            -webkit-backdrop-filter: blur(15px) saturate(160%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 
+                0 6px 20px 0 rgba(0, 0, 0, 0.08),
+                inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+        }
+        
+        .glass-button {
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 
+                0 4px 12px 0 rgba(0, 0, 0, 0.05),
+                inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .glass-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+            box-shadow: 
+                0 8px 24px 0 rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+        }
+        
+        .glass-input {
+            background: rgba(255, 255, 255, 0.07);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 
+                inset 0 1px 4px 0 rgba(0, 0, 0, 0.05),
+                0 1px 0 0 rgba(255, 255, 255, 0.05);
+        }
+        
+        .glass-input:focus {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            box-shadow: 
+                inset 0 1px 4px 0 rgba(0, 0, 0, 0.05),
+                0 0 0 3px rgba(255, 255, 255, 0.1);
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #ffd89b 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+        }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50% }
+            50% { background-position: 100% 50% }
+            100% { background-position: 0% 50% }
+        }
+        
+        /* Efeito de brilho sutil */
+        .glow-effect {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .glow-effect::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .glow-effect:hover::after {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="min-h-screen gradient-bg flex flex-col items-center justify-center p-4 text-white">
+    <div class="max-w-6xl w-full mx-auto">
+        <header class="text-center mb-12 animate-fade-in">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4">Apple Glass Effect</h1>
+            <p class="text-xl opacity-90">Implementação avançada do design glassmorphism com Tailwind CSS</p>
+            <div class="flex justify-center mt-6 space-x-4">
+                <button onclick="toggleDarkMode()" class="glass-button px-4 py-2 rounded-full flex items-center gap-2">
+                    <i class="fas fa-moon"></i>
+                    <span>Alternar Modo</span>
+                </button>
+                <button onclick="toggleBackground()" class="glass-button px-4 py-2 rounded-full flex items-center gap-2">
+                    <i class="fas fa-palette"></i>
+                    <span>Mudar Fundo</span>
+                </button>
+            </div>
+        </header>
+        
+        <main class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+            <!-- Card 1 -->
+            <div class="glass-advanced rounded-3xl p-8 animate-fade-in glow-effect">
+                <div class="flex items-center mb-6">
+                    <div class="w-14 h-14 rounded-2xl glass-dark flex items-center justify-center mr-4">
+                        <i class="fas fa-gem text-2xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold">Design Elegante</h2>
+                </div>
+                <p class="opacity-90 mb-6">Este efeito glass é inspirado no design mais recente da Apple, com transparências sutis, desfoque e realces precisos.</p>
+                <div class="flex space-x-3">
+                    <button class="glass-button px-5 py-3 rounded-xl flex-1 text-center">Explorar</button>
+                    <button class="glass-button px-5 py-3 rounded-xl w-14 flex items-center justify-center">
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Card 2 -->
+            <div class="glass-dark rounded-3xl p-8 animate-fade-in animation-delay-200 glow-effect">
+                <div class="flex items-center mb-6">
+                    <div class="w-14 h-14 rounded-2xl glass-advanced flex items-center justify-center mr-4">
+                        <i class="fas fa-magic text-2xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold">Efeitos Hover</h2>
+                </div>
+                <p class="opacity-90 mb-6">Passe o mouse sobre os elementos para experimentar efeitos suaves de elevação, brilho e transformação.</p>
+                <div class="flex flex-col space-y-4">
+                    <button class="glass-button px-5 py-3 rounded-xl text-center hover:scale-[1.02] transition-transform">Efeito de Elevação</button>
+                    <button class="glass-button px-5 py-3 rounded-xl text-center hover:rotate-1 transition-transform">Leve Rotação</button>
+                </div>
+            </div>
+            
+            <!-- Card 3 -->
+            <div class="glass-advanced rounded-3xl p-8 animate-fade-in animation-delay-400 glow-effect">
+                <div class="flex items-center mb-6">
+                    <div class="w-14 h-14 rounded-2xl glass-dark flex items-center justify-center mr-4 animate-float">
+                        <i class="fas fa-star text-2xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold">Animações</h2>
+                </div>
+                <p class="opacity-90 mb-6">Animações suaves e fluidas que melhoram a experiência do usuário sem comprometer a performance.</p>
+                <div class="flex space-x-3">
+                    <button class="glass-button px-5 py-3 rounded-xl flex-1 text-center animate-pulse-glow">Brilho Pulsante</button>
+                </div>
+            </div>
+        </main>
+        
+        <section class="glass-dark rounded-3xl p-8 mb-12 animate-fade-in">
+            <h2 class="text-3xl font-bold mb-8 text-center">Elementos de Formulário</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <div class="mb-6">
+                        <label class="block mb-2 opacity-90">Nome</label>
+                        <input type="text" class="glass-input w-full px-5 py-4 rounded-xl focus:outline-none" placeholder="Digite seu nome">
+                    </div>
+                    <div class="mb-6">
+                        <label class="block mb-2 opacity-90">Email</label>
+                        <input type="email" class="glass-input w-full px-5 py-4 rounded-xl focus:outline-none" placeholder="seu@email.com">
+                    </div>
+                    <div class="mb-6">
+                        <label class="block mb-2 opacity-90">Mensagem</label>
+                        <textarea class="glass-input w-full px-5 py-4 rounded-xl focus:outline-none h-32" placeholder="Sua mensagem..."></textarea>
+                    </div>
+                </div>
+                <div class="flex flex-col justify-center">
+                    <div class="glass-card rounded-2xl p-6 mb-6">
+                        <h3 class="text-xl font-bold mb-4">Preferências</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center">
+                                <div class="relative">
+                                    <input type="checkbox" id="toggle1" class="hidden">
+                                    <label for="toggle1" class="toggle-switch"></label>
+                                </div>
+                                <label for="toggle1" class="ml-3 opacity-90">Efeitos de animação</label>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="relative">
+                                    <input type="checkbox" id="toggle2" class="hidden" checked>
+                                    <label for="toggle2" class="toggle-switch"></label>
+                                </div>
+                                <label for="toggle2" class="ml-3 opacity-90">Modo escuro</label>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="relative">
+                                    <input type="checkbox" id="toggle3" class="hidden">
+                                    <label for="toggle3" class="toggle-switch"></label>
+                                </div>
+                                <label for="toggle3" class="ml-3 opacity-90">Notificações</label>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="glass-button px-6 py-4 rounded-xl text-lg font-bold w-full">Enviar Formulário</button>
+                </div>
+            </div>
+        </section>
+        
+        <footer class="text-center py-8">
+            <div class="glass-advanced rounded-3xl p-6 inline-block">
+                <p class="opacity-90">Criado com ❤️ usando <span class="font-bold">Tailwind CSS</span> | Efeito Glass Apple</p>
+                <div class="flex justify-center space-x-6 mt-4">
+                    <a href="#" class="glass-button w-12 h-12 rounded-full flex items-center justify-center">
+                        <i class="fab fa-github text-xl"></i>
+                    </a>
+                    <a href="#" class="glass-button w-12 h-12 rounded-full flex items-center justify-center">
+                        <i class="fab fa-codepen text-xl"></i>
+                    </a>
+                    <a href="#" class="glass-button w-12 h-12 rounded-full flex items-center justify-center">
+                        <i class="fab fa-twitter text-xl"></i>
+                    </a>
+                </div>
+            </div>
+        </footer>
+    </div>
+    
+    <script>
+        // Alternar modo escuro/claro
+        function toggleDarkMode() {
+            const html = document.querySelector('html');
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                document.body.style.background = "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)";
+                document.body.style.color = "#333";
+            } else {
+                html.classList.add('dark');
+                document.body.style.background = "";
+                document.body.style.color = "";
+            }
+        }
+        
+        // Alternar fundo dinâmico/estático
+        let dynamicBg = true;
+        function toggleBackground() {
+            const body = document.body;
+            if (dynamicBg) {
+                body.classList.remove('gradient-bg');
+                body.style.background = "#0f172a";
+                dynamicBg = false;
+            } else {
+                body.classList.add('gradient-bg');
+                body.style.background = "";
+                dynamicBg = true;
+            }
+        }
+        
+        // Adicionar delays de animação para os cards
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.animate-fade-in');
+            cards.forEach((card, index) => {
+                card.style.animationDelay = `${index * 0.1}s`;
+            });
+            
+            // Criar estilo para os switches personalizados
+            const style = document.createElement('style');
+            style.textContent = `
+                .toggle-switch {
+                    display: inline-block;
+                    width: 60px;
+                    height: 30px;
+                    background: rgba(255, 255, 255, 0.1);
+                    border-radius: 30px;
+                    position: relative;
+                    cursor: pointer;
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    transition: all 0.3s ease;
+                }
+                
+                .toggle-switch:after {
+                    content: '';
+                    position: absolute;
+                    width: 26px;
+                    height: 26px;
+                    background: white;
+                    border-radius: 50%;
+                    top: 1px;
+                    left: 2px;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+                }
+                
+                input[type="checkbox"]:checked + .toggle-switch {
+                    background: rgba(59, 130, 246, 0.5);
+                    border-color: rgba(59, 130, 246, 0.5);
+                }
+                
+                input[type="checkbox"]:checked + .toggle-switch:after {
+                    left: 31px;
+                }
+                
+                .toggle-switch:hover {
+                    background: rgba(255, 255, 255, 0.15);
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // Adicionar funcionalidade aos switches
+            document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const label = this.nextElementSibling;
+                    if (this.checked) {
+                        label.style.boxShadow = "0 0 15px rgba(59, 130, 246, 0.5)";
+                    } else {
+                        label.style.boxShadow = "";
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
