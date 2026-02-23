@@ -1,20 +1,23 @@
 // app/api/analysis/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getAnalysis  } from '@/lib/mongodb';
+import { getAnalysis } from '@/lib/mongodb';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await context.params;
 
-    // Busca a análise salva no banco
     const analysis = await getAnalysis(id);
+
+    if (!analysis) {
+      return NextResponse.json({ error: 'Análise não encontrada' }, { status: 404 });
+    }
 
     return NextResponse.json(analysis);
   } catch (error) {
     console.error('Erro ao buscar análise:', error);
-    return NextResponse.json({ error: 'Análise não encontrada' }, { status: 404 });
+    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
   }
 }

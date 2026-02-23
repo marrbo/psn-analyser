@@ -17,7 +17,7 @@ interface CardProps {
   profilePicture: string;
   userName?: string;
   accountId?: string;
-  psnUser?: PSNUser;
+  psnUser: PSNUser | null;
   lastOnlineDate: Date;
   avatarStatus: string;
   trophyMeter?: TrophyMeterData;

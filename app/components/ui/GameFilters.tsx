@@ -39,12 +39,12 @@ function GameFilters({
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   // Extrair plataformas únicas dos jogos
-  const platforms = useMemo(() => {
-    const uniquePlatforms = Array.from(
-      new Set(games.map(game => game?.gameTitle?.platform || game?.trophyTitlePlatform))
-    ).sort((a, b) => a.localeCompare(b));
-    return uniquePlatforms;
-  }, [games]);
+  // const platforms = useMemo(() => {
+  //   const uniquePlatforms = Array.from(
+  //     new Set(games.map(game => game?.gameTitle?.platform || game?.trophyTitlePlatform))
+  //   ).sort((a, b) => a.localeCompare(b));
+  //   return uniquePlatforms;
+  // }, [games]);
 
   // Status de conclusão
   const statusOptions = [
@@ -208,7 +208,7 @@ function GameFilters({
                 </div>
 
                 {/* Filtro por Plataforma */}
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <label className="text-white font-medium flex items-center gap-2">
                     <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                     Plataforma
@@ -238,7 +238,7 @@ function GameFilters({
                       </button>
                     ))}
                   </div>
-                </div>
+                </div> */}
 
                 {/* Filtro por Status */}
                 <div className="space-y-2">

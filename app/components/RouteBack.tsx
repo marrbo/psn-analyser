@@ -126,7 +126,7 @@ function RouteBackComponent() {
 
     if (psnUser?.fullProfile?.personalDetail) {
       profilePicture =
-        psnUser?.fullProfile?.personalDetail?.profilePictures.find((picture) =>
+        psnUser?.fullProfile?.personalDetail?.profilePictures?.find((picture) =>
           picture.size.includes("xl"),
         )?.url || "/default-avatar.png";
       profileName =

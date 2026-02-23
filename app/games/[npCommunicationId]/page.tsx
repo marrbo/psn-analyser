@@ -8,7 +8,7 @@ import ProgressRing from "@/app/components/ui/ProgressRing";
 import TrophyFilters, { TrophyFiltersState } from "@/app/components/TrophyFilters";
 import Image from "next/image";
 import { getPlatform, useHeader } from "@/providers/HeaderContext";
-import { TrophyDetail, TrophyGroup, TrophyTitle } from "@/types/trophies";
+import { TrophyDetail, TrophyGroup } from "@/types/trophies";
 import LoadingSpinner from "@/app/components/ui/LoadingSpinner";
 import { FaAdjust, FaAward, FaCalendar, FaEye, FaEyeSlash, FaLock, FaLockOpen } from "react-icons/fa";
 
@@ -82,37 +82,51 @@ function GameDetailPageContent() {
         setAnalysisData(data);
         setFocusGame(data.games[0]);
         
-        if (data.games[0].backgroundImage) {
-          setBackgroundImage(data.games[0].backgroundImage);
-        }
+        // if (!data.games[0].backgroundImage) {
+        //   const backgroundImage =
+        //     game?.localizedImageUrl ||
+        //     game?.concept?.media.images.find(
+        //       (a) => a.type === "GAMEHUB_COVER_ART",
+        //     )?.url ||
+        //     game?.concept?.media.images.find(
+        //       (a) => a.type === "BACKGROUND_LAYER_ART",
+        //     )?.url ||
+        //     game?.concept?.media.images[1]?.url ||
+        //     game?.trophyTitle.trophyTitleIconUrl ||
+        //     "/default-game-cover.webp";
+          
+        //   data.games[0].backgroundImage = backgroundImage;
+        // }
 
-        if (data.games[0].logoImage) {
-          setLogoImage(data.games[0].logoImage);
-        } else {
-          setLogoImage(null);
-        }
+        // setBackgroundImage(data.games[0].backgroundImage);
 
-        if (data.games[0].heroImage) {
-          setHeroImage(data.games[0].heroImage);
-        } else {
-          setHeroImage(null);
-        }
+        // if (data.games[0].logoImage) {
+        //   setLogoImage(data.games[0].logoImage);
+        // } else {
+        //   setLogoImage(null);
+        // }
 
-        setTitle(`Detalhes do Jogo: ${data.games[0].trophyTitleName}`);
+        // if (data.games[0].heroImage) {
+        //   setHeroImage(data.games[0].heroImage);
+        // } else {
+        //   setHeroImage(null);
+        // }
+
+        setTitle(`Detalhes do Jogo: ${data.games[0].localizedName}`);
         setPsnUser(data.psnUser);
         setTrophyData(data.trophySummary);
         setTotalEarned(
-          data.games[0].earnedTrophies.bronze +
-            data.games[0].earnedTrophies.silver +
-            data.games[0].earnedTrophies.gold +
-            data.games[0].earnedTrophies.platinum
+          data.games[0].trophyTitle.earnedTrophies.bronze +
+            data.games[0].trophyTitle.earnedTrophies.silver +
+            data.games[0].trophyTitle.earnedTrophies.gold +
+            data.games[0].trophyTitle.earnedTrophies.platinum
         );
 
         setTotalDefined(
-          data.games[0].definedTrophies.bronze +
-            data.games[0].definedTrophies.silver +
-            data.games[0].definedTrophies.gold +
-            data.games[0].definedTrophies.platinum
+          data.games[0].trophyTitle.definedTrophies.bronze +
+            data.games[0].trophyTitle.definedTrophies.silver +
+            data.games[0].trophyTitle.definedTrophies.gold +
+            data.games[0].trophyTitle.definedTrophies.platinum
         );
       } catch (error) {
         console.error("Erro ao carregar detalhes do jogo:", error);
@@ -345,19 +359,19 @@ function GameDetailPageContent() {
   }
 
   const coverImage =
-    game?.gameTitle?.concept?.media.images.find((a) => a.type === "MASTER")
+    game?.concept?.media.images.find((a) => a.type === "MASTER")
         ?.url ||  
-    game?.gameTitle?.concept?.media.images.find((a) => a.type === "PORTRAIT_BANNER")
+    game?.concept?.media.images.find((a) => a.type === "PORTRAIT_BANNER")
         ?.url ||
-    game?.gameTitle?.concept?.media.images[1]?.url ||
-    game?.trophyTitleIconUrl ||
+    game?.concept?.media.images[1]?.url ||
+    game?.trophyTitle.trophyTitleIconUrl ||
     "/default-game-cover.webp";
 
-  const platformText = game?.trophyTitlePlatform || game?.gameTitle?.platform || '';
+  const platformText = game?.trophyTitle.trophyTitlePlatform || game?.platform || '';
   const platform = getPlatform(game!)
   
   const title =
-    game?.gameTitle?.localizedName || game?.trophyTitleName || "Capa do jogo";
+    game?.localizedName || "Capa do jogo";
   const classPS3 =
     platformText === "PS3"
       ? "object-cover-custom p-3 bg-linear-to-bl from-black to-gray-500 border border-gray-950"
@@ -385,17 +399,17 @@ function GameDetailPageContent() {
                 <span className={`flex min-w-10 max-w-100 h-4.5 border ${platformText.includes("PS5") ? 'bg-white border-black text-black' : 'bg-black/80 border-white/50 text-white'} rounded-lg px-2 text-center`}>
                   {platform}
                 </span>
-                {game?.gotyData && (
+                {game?.trophyTitle.gotyData && (
                   <span
                     className={`flex items-center gap-1 justify-between px-2 h-4.5 py-0.5 rounded-md bg-yellow-500 text-black -skew-x-10 text-xs`}
                   >
-                    <FaAward /> <span>GOTY - {game?.gotyData?.ano_premiacao}</span> 
+                    <FaAward /> <span>GOTY - {game?.trophyTitle.gotyData?.ano_premiacao}</span> 
                   </span>
                 )}
               </div>
             </div>
             <div className="text-sm lg:text-lg text-gray-300 font-thin lg:font-semibold flex gap-3 mt-4 italic drop-shadow-2xs shadow-black text-shadow-2xs">
-              <p>🎮 {showDLCs ? game?.progress?.toFixed(1) : ((totalEarned/totalDefined) * 100).toFixed(1)}%</p>
+              <p>🎮 {showDLCs ? game?.trophyTitle.progress?.toFixed(1) : ((totalEarned/totalDefined) * 100).toFixed(1)}%</p>
               <p>🏆 {totalEarned || 0}/{totalDefined}</p>
               { (game?.trophyGroups.length || 0) > 1 && (
                 <p>📚 {(game?.trophyGroups.length || 0) - 1}
@@ -448,8 +462,8 @@ function GameDetailPageContent() {
                   </div>
                   <div className="flex justify-between items-center gap-5 text-gray-400">
                     <div className="hidden lg:block">
-                      <TrophyMeter hideLevel={true} data={group} hidePlatinum={true} 
-                        hideTotal={true} showEarned={true} size="xl" space="15"/>
+                      <TrophyMeter hideLevel={true} data={group} hidePlatinum={group.definedTrophies?.platinum === 0 ? true : false} 
+                        hideTotal={false} showEarned={true} size="xl" space="15"/>
                     </div>
                     <div className="block lg:hidden">
                       <TrophyMeter hideLevel={true} data={group} hidePlatinum={true} 

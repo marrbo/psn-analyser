@@ -6,20 +6,20 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import TrophyMeter from "../components/ui/TrophyMeter";
 import Image from "next/image";
-import { TrophyTitle } from "@/types/trophies";
+import { GameTitle } from "@/types/trophies";
 import { getPlatform, useHeader } from "@/providers/HeaderContext";
 import DurationDisplay from "../components/ui/DurationDisplay";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import GameFilters, { FiltersState } from "../components/ui/GameFilters";
 import PaginationWithIcons from "../components/ui/PaginationWithIcons";
-import { FaAward, FaClock, FaGamepad } from "react-icons/fa";
+import { FaAward, FaClock, FaGamepad, FaStore } from "react-icons/fa";
 import { SiMetacritic } from "react-icons/si";
 
 function GamesPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [allGames, setAllGames] = useState<TrophyTitle[]>([]);
-  const [displayedGames, setDisplayedGames] = useState<TrophyTitle[]>([]); // Jogos exibidos
+  const [allGames, setAllGames] = useState<GameTitle[]>([]);
+  const [displayedGames, setDisplayedGames] = useState<GameTitle[]>([]); // Jogos exibidos
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,7 +40,7 @@ function GamesPageContent() {
   } = useHeader();
 
   const setGameInFocus = useCallback(
-    (game: TrophyTitle) => {
+    (game: GameTitle) => {
       setHeroImage(null);
       setLogoImage(null);
       setFocusGame(game);
@@ -132,12 +132,13 @@ function GamesPageContent() {
       // Simula carregamento da próxima página
       // Em uma implementação real, você faria uma chamada à API
       const nextPage = currentPage + 1;
+      const itemsPerPage = 12;
 
       // Se não for a primeira página, acumula os itens
       if (nextPage > 1 && !loadedPages.includes(nextPage)) {
         // Aqui você faria a chamada à API para obter os jogos da próxima página
         // Por enquanto, simulamos pegando mais jogos do array existente
-        const itemsPerPage = 12;
+        
         const startIndex = (nextPage - 1) * itemsPerPage;
         const endIndex = startIndex + itemsPerPage;
         const nextGames = filteredGames.slice(startIndex, endIndex);
@@ -149,7 +150,7 @@ function GamesPageContent() {
       }
 
       // Se não houver mais páginas, atualiza o total
-      if (nextPage >= Math.ceil(filteredGames.length / 12)) {
+      if (nextPage >= Math.ceil(filteredGames.length / itemsPerPage)) {
         setTotalPages(nextPage);
       }
     } finally {
@@ -251,11 +252,23 @@ function GamesPageContent() {
 
       return prev;
     });
+
   };
 
   const handleSortChange = (value: string) => {
     setSortBy(value);
   };
+
+  const gameGetService = (service: string) => {
+    switch (service) {
+      case "ps_plus": 
+        return <Image src="/ps-plus.png" alt="PS Plus" width={16} height={16} className="inline-block" />;
+      case "none(purchased)":
+        return '';
+      default:
+        return ''
+    };
+  }
 
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
@@ -268,7 +281,7 @@ function GamesPageContent() {
     // Aplicar filtro de plataforma (múltiplas seleções)
     if (filters.platform.length > 0) {
       filtered = filtered.filter((game) =>
-        filters.platform.includes(game?.trophyTitlePlatform),
+        filters.platform.includes(game?.trophyTitle.trophyTitlePlatform),
       );
     }
 
@@ -279,15 +292,15 @@ function GamesPageContent() {
         return filters.status.every((status) => {
           switch (status) {
             case "platinum":
-              return game.earnedTrophies.platinum > 0;
+              return (game?.trophyTitle.earnedTrophies?.platinum || game?.earnedTrophies?.platinum) > 0;
             case "100percent":
-              return game.progress === 100;
+              return game.trophyTitle.progress === 100;
             case "in-progress":
-              return game.progress > 0 && game.progress < 100;
+              return game.trophyTitle.progress > 0 && game.trophyTitle.progress < 100;
             case "not-started":
-              return (game.progress || 0) === 0;
+              return (game.trophyTitle.progress || 0) === 0;
             case "goty":
-              return game.gotyData || game.isGoty;
+              return game.trophyTitle.gotyData || game.trophyTitle.isGoty;
             default:
               return true;
           }
@@ -299,7 +312,7 @@ function GamesPageContent() {
     if (searchTerm.trim() !== "") {
       const term = searchTerm.toLowerCase().trim();
       filtered = filtered.filter((game) =>
-        (game.gameTitle?.localizedName || game.trophyTitleName)
+        (game.localizedName)
           .toLowerCase()
           .includes(term),
       );
@@ -311,36 +324,36 @@ function GamesPageContent() {
         case "recent":
           return (
             new Date(
-              b?.gameTitle?.lastPlayedDateTime || b?.lastUpdatedDateTime,
+              b?.lastPlayedDateTime || b?.lastUpdatedDateTime,
             ).getTime() -
             new Date(
-              a?.gameTitle?.lastPlayedDateTime || a?.lastUpdatedDateTime,
+              a?.lastPlayedDateTime || a?.lastUpdatedDateTime,
             ).getTime()
           );
         case "progress-desc":
-          return b.progress - a.progress;
+          return b.trophyTitle.progress - a.trophyTitle.progress;
         case "progress-asc":
-          return a.progress - b.progress;
+          return a.trophyTitle.progress - b.trophyTitle.progress;
         case "title-asc":
-          return a.trophyTitleName.localeCompare(b.trophyTitleName);
+          return a.localizedName.localeCompare(b.localizedName);
         case "title-desc":
-          return b.trophyTitleName.localeCompare(a.trophyTitleName);
+          return b.localizedName.localeCompare(a.localizedName);
         case "old":
           return (
             new Date(
-              a?.gameTitle?.lastPlayedDateTime || a?.lastUpdatedDateTime,
+              a?.lastPlayedDateTime || a?.lastUpdatedDateTime,
             ).getTime() -
             new Date(
-              b?.gameTitle?.lastPlayedDateTime || b?.lastUpdatedDateTime,
+              b?.lastPlayedDateTime || b?.lastUpdatedDateTime,
             ).getTime()
           );
         default:
           return (
             new Date(
-              b?.gameTitle?.lastPlayedDateTime || b?.lastUpdatedDateTime,
+              b?.lastPlayedDateTime || b?.lastUpdatedDateTime,
             ).getTime() -
             new Date(
-              a?.gameTitle?.lastPlayedDateTime || a?.lastUpdatedDateTime,
+              a?.lastPlayedDateTime || a?.lastUpdatedDateTime,
             ).getTime()
           );
       }
@@ -365,13 +378,6 @@ function GamesPageContent() {
     setTotalPages(newTotalPages || 1);
   }, [filteredGames]);
 
-  const getBgColor = (progress: number) => {
-    if (progress >= 100) return "green-500";
-    if (progress >= 50) return "yellow-500";
-    if (progress >= 0) return "red-600";
-    return "red-600";
-  };
-
   if (isLoading) {
     return (
       <LoadingSpinner
@@ -387,6 +393,7 @@ function GamesPageContent() {
       <div className="relative flex max-w-screen lg:items-start lg:justify-start pb-0">
         <h2 className="text-4xl pt-2 text-center w-full lg:pb-8 lg:text-6xl">
           Meus Jogos
+          <span className="text-gray-400 text-lg"> ({filteredGames.length})</span>
         </h2>
       </div>
 
@@ -413,6 +420,7 @@ function GamesPageContent() {
             onLoadMore={handleLoadMore}
             hasMore={currentPage < totalPages}
             isLoading={isLoadingMore}
+            itemsPerPage={12}
           />
         </div>
       </div>
@@ -425,47 +433,46 @@ function GamesPageContent() {
           //   ? `bg-${color}/20 border-2 border-${color}/50 `
           //   : `bg-white/15`;
           const hover = `hover:border-white/80 hover:drop-shadow-3xl hover:shadow-blue-300/20 ease-in-out duration-500`;
-          const playedTime = game.gameTitle?.playDuration || "0";
-          const platformText =
-            game?.trophyTitlePlatform || game?.gameTitle?.platform;
+          const playedTime = game.playDuration || "0";
           const platform = getPlatform(game);
-          const title = game.gameTitle?.localizedName || game.trophyTitleName;
+          const platformText = game?.platform || game?.trophyTitle?.trophyTitlePlatform || 'PS5/';
+          const title = game.localizedName || game.name;
           const PS3andServiceTrophy =
             "object-cover-custom bg-black border border-gray-950 object-center";
 
           const coverImage =
-            game.gameTitle?.localizedImageUrl ||
-            game?.gameTitle?.concept?.media.images.find(
+            game?.localizedImageUrl ||
+            game?.concept?.media.images.find(
               (a) => a.type === "MASTER",
             )?.url ||
-            game?.gameTitle?.concept?.media.images.find(
+            game?.concept?.media.images.find(
               (a) => a.type === "PORTRAIT_BANNER",
             )?.url ||
-            game?.gameTitle?.concept?.media.images[1]?.url ||
-            game.trophyTitleIconUrl ||
+            game?.concept?.media.images[1]?.url ||
+            game?.trophyTitle.trophyTitleIconUrl ||
             "/default-game-cover.webp";
 
           return (
             <Link
-              key={game.npCommunicationId}
+              key={game.titleId}
               onMouseEnter={() => setGameInFocus(game)}
-              href={`/games/${game.npCommunicationId}?accountId=${accountId}`}
+              href={`/games/${game.trophyTitle.npCommunicationId}?accountId=${accountId}`}
               className={`group glass-apple h-25 lg:h-30.5 backdrop-blur-[5px] mask-intersect
                 bg-blend-difference flex justify-between gap-2 ${hover} transition-all duration-300 transform cursor-pointer`}
             >
               <div
                 style={{ width: 100 + "%" }}
                 className={
-                  game.progress > 0
+                  game?.trophyTitle?.progress > 0
                     ? `absolute bg-blend-multiply border-none mask-intersect overflow-clip
-                  ${game.progress === 100 ? "bg-green-500/20" : ""} 
-                  ${game.progress > 98 ? "rounded-sm" : ""} h-full w-full`
+                  ${game?.trophyTitle?.progress === 100 ? "bg-green-500/20" : ""} 
+                  ${game?.trophyTitle?.progress > 98 ? "rounded-sm" : ""} h-full w-full`
                     : "hidden"
                 }
               >
-                {game.progress < 100 && game.progress > 0 && (
+                {game?.trophyTitle?.progress < 100 && game?.trophyTitle?.progress > 0 && (
                   <div
-                    style={{ height: game.progress + "%" }}
+                    style={{ height: game.trophyTitle.progress + "%" }}
                     className={`w-screen absolute -left-4 -right-4 bottom-0 bg-green-400/30 block lg:hidden group-hover:block border-t-10 border-green-400/5`}
                   ></div>
                 )}
@@ -493,20 +500,21 @@ function GamesPageContent() {
                   >
                     {platform}
                   </span>
-                  {game?.gotyData && (
+                  {game?.trophyTitle?.gotyData && (
                     <span
                       className={`flex w-auto items-center gap-1 justify-between px-2 h-4.5 py-0.5 rounded-md bg-yellow-500 text-black text-xs`}
                     >
-                      <FaAward /> <span>{game?.gotyData?.ano_premiacao}</span>
+                      <FaAward /> <span>{game?.trophyTitle.gotyData?.ano_premiacao}</span>
                     </span>
                   )}
                 </span>
+                
               </div>
 
               <div className="w-full grid grid-rows-2 pb-2 pt-1">
                 {/* Título do Jogo */}
                 <div
-                  className={`font-calm ${game.progress === 100 || game.earnedTrophies?.platinum > 0 ? "text-green-500" : "text-gray-400"} group-hover:text-white flex items-top justify-between text-sm font-semibold lg:text-lg text-left line-clamp-2 lg:truncate drop-shadow-xs text-shadow-black text-shadow-2xs`}
+                  className={`font-calm ${game?.trophyTitle?.progress === 100 || game?.earnedTrophies?.platinum > 0 ? "text-green-500" : "text-gray-400"} group-hover:text-white flex items-top justify-between text-sm font-semibold lg:text-lg text-left line-clamp-2 lg:truncate drop-shadow-xs text-shadow-black text-shadow-2xs`}
                 >
                   <span>{title}</span>
                 </div>
@@ -514,9 +522,9 @@ function GamesPageContent() {
                 {/* Troféus */}
                 <div className="saturate-20 group-focus:saturate-100 group-hover:saturate-100 w-full -ml-2 space-y-2">
                   <TrophyMeter
-                    data={game}
+                    data={game.trophyTitle}
                     hideTotal={isMobile ? true : false}
-                    hidePlatinum={true}
+                    hidePlatinum={game?.trophyTitle?.definedTrophies?.platinum < 1}
                     showEarned={!isMobile}
                     hideLevel={true}
                     size="sm"
@@ -524,17 +532,18 @@ function GamesPageContent() {
 
                   {/* Informações do Jogo */}
                   <ul className="list rounded-md text-gray-300/70 ml-2 gap-0 p-0 text-xs">
-                    <li className="list-row p-0 mb-0">
-                      {/* <div>Dificuldade</div>
-                    <div className="font-thin">
-                      <div>{game.gameTitle?.difficulty} / 10</div>
-                    </div> */}
-                      {(game.metacritc?.metascore ?? 0) > 0 && (
+                    <li className="list-row p-0 mb-0 mt-2">
+                      { (game?.trophyTitle?.metacritc?.metascore ?? 0) > 0 && (
                         <div className="flex flex-row justify-end gap-2 items-center">
+                          <div className="w-4 h-4">{gameGetService(game.service)}</div>
                           <SiMetacritic className="w-4.5 h-4.5" />
-                          <div>{game.metacritc?.metascore ?? "tbd"} / 100</div>
+                          <div>{game?.trophyTitle?.metacritc?.metascore ?? "tbd"} / 100</div>
                         </div>
                       )}
+                      { (game?.trophyTitle?.metacritc?.metascore ?? 0) === 0 && (
+                      <div className="flex flex-row justify-end gap-2 items-center">
+                        <div className="w-4 h-4">{gameGetService(game.service)}</div>
+                      </div>)}
 
                       {playedTime !== "0" && (
                         <>
@@ -549,7 +558,7 @@ function GamesPageContent() {
                           </div>
                           <div className="flex flex-row justify-end gap-2 items-center">
                             <FaGamepad className="w-4" />
-                            <span>{game.gameTitle?.playCount || 0}</span>{" "}
+                            <span>{game.playCount || 0}</span>{" "}
                           </div>
                         </>
                       )}
@@ -561,7 +570,7 @@ function GamesPageContent() {
               <div className="flex flex-col p-2 pt-1 items-end justify-between w-10">
                 {/* Progresso */}
                 <div className="aspect-square text-gray-300 text-right font-bold text-shadow-black lg:text-white/60 italic text-sm lg:text-lg">
-                  {game.progress}
+                  {game?.trophyTitle?.progress}
                   <span className="text-[7pt] lg:text-xs inline-block align-middle">%</span>
                 </div>
                 <Image
@@ -570,9 +579,9 @@ function GamesPageContent() {
                   width={200}
                   height={200}
                   className={`w-8 lg:w-12 ${
-                    game.definedTrophies?.platinum < 1 ? "hidden" : ""
+                    game?.trophyTitle?.definedTrophies?.platinum < 1 ? "hidden" : ""
                   } ${
-                    game.earnedTrophies?.platinum > 0 || 0
+                    game?.trophyTitle?.earnedTrophies?.platinum > 0 || 0
                       ? " group-hover:scale-115 group-hover:animate-pulse transition-all duration-300 ease-in-out cursor-pointer "
                       : " grayscale opacity-20"
                   }`}

@@ -2,7 +2,7 @@
 import { ScoreBreakdown } from '@/types/analysis.type';
 import { GameMetacritic } from '@/types/metacritc';
 import { PSNUser } from '@/types/psn';
-import { GotyStats, TrophySummary, TrophyTitle } from '@/types/trophies';
+import { GameTitle, GotyStats, TrophySummary, TrophyTitle } from '@/types/trophies';
 import { MongoClient, Db, ObjectId } from 'mongodb';
 import { normalizeText } from './utils/text';
 
@@ -49,7 +49,7 @@ export interface AnalysisData {
   renewAt: Date;
   lastAccessed: Date;
   trophySummary: TrophySummary;
-  games: TrophyTitle[];
+  games: GameTitle[];
   gotyStats: GotyStats;
 }
 

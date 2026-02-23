@@ -2,7 +2,7 @@ import { metacriticScraper } from '@/lib/metacritc-scraper';
 import { NextRequest, NextResponse } from 'next/server';
 
 interface RouteContext {
-  params: Promise<{ start: number, end: number }>;
+  params: Promise<{ start: string, end: string }>;
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {

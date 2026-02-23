@@ -2,7 +2,7 @@
 
 import { SiPlaystation2, SiPlaystation3, SiPlaystation4, SiPlaystation5, SiPlaystationvita } from "react-icons/si";
 import { PSNUser } from '@/types/psn';
-import { TrophySummary, TrophyTitle } from '@/types/trophies';
+import { GameTitle, TrophySummary, TrophyTitle } from '@/types/trophies';
 import { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 import { AnalysisData } from "@/lib/mongodb";
 
@@ -12,14 +12,14 @@ interface HeaderContextType {
   title: string;
   setTitle: (title: string) => void;
   psnUser: PSNUser | null;
-  setPsnUser: (psnUser: PSNUser | undefined) => void;
+  setPsnUser: (psnUser: PSNUser | null | undefined) => void;    
   texto: string;
   setTexto: (texto: string) => void;
   trophyData: TrophySummary | null;
   setTrophyData: (trophyData: TrophySummary | null) => void;
   onClick?: () => void;
   navigateRoute?: string;
-  setNavigateRoute?: (route: string) => void;
+  setNavigateRoute: (route: string | undefined) => void;
   setOnClick: (onClick: () => void) => void;
   
   isMobile: boolean;
@@ -33,8 +33,8 @@ interface HeaderContextType {
   analysisData: AnalysisData;
   setAnalysisData: (analysisData: AnalysisData) => void;
 
-  focusGame: TrophyTitle | null;
-  setFocusGame: (game: TrophyTitle | null) => void;
+  focusGame: GameTitle | null;
+  setFocusGame: (game: GameTitle | null) => void;
   
   // Novos estados para imagens
   backgroundImage: string;
@@ -142,11 +142,13 @@ export const useHeader = () => {
   };
 };
 
-export const getPlatform = (game: TrophyTitle, size = 24) => {
-    switch (game?.trophyTitlePlatform || game?.gameTitle?.platform) {
+export const getPlatform = (game: GameTitle, size = 24) => {
+    switch (game.category || game?.trophyTitle?.trophyTitlePlatform) {
       case 'PS4':
+      case 'ps4_game':
         return <SiPlaystation4 size={size} className="h-6 p-0 m-0 -mt-1"/>
       case 'PS5':
+      case 'ps5_native_game':
         return <SiPlaystation5 size={size} className="h-6 p-0 m-0 -mt-1"/>
       case 'PS5,PSPC':
         return <SiPlaystation5 size={size} className="h-6 p-0 m-0 -mt-1"/>

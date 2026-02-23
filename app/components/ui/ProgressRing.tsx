@@ -2,12 +2,11 @@
 'use client';
 
 import { DefinedTrophies } from '@/types/trophies';
-import { text } from 'node:stream/consumers';
 import { useRef, useEffect, useState } from 'react';
 import { FaTrophy } from 'react-icons/fa';
 
 interface ProgressRingProps {
-  progress: number;
+  progress: number | undefined;
   earned?: DefinedTrophies;
   total?: number;
   size?: number;
@@ -36,8 +35,8 @@ export default function ProgressRing({
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const totalEarned = earned.bronze + earned.silver + earned.gold + earned?.platinum || 0;
-  const textSizeClass = `text-[${textSize}pt]`;
-  const textSmallSClass = `text-[${textSize - 5 }pt]`;
+  const textSizeClass = `text-[${textSize + 4}pt]`;
+  const textSmallClass = `text-[${textSize - 2}pt]`;
   const sizeTrophy = ((10 / size) * 0.5 * 100).toPrecision(1); // Ajusta o tamanho do troféu proporcionalmente ao tamanho do anel
   const trophySize = `w-${sizeTrophy} h-${sizeTrophy}`;
   console.log('trophySize:', trophySize);
@@ -50,11 +49,11 @@ export default function ProgressRing({
   if (onlyText) {
     return (
     <>
-      <div className={`text-center -mt-1 grid grid-rows-2 ${progress >= 100 ? 'text-green-500' : progress >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
-        <span className={`${hideValue ? 'hidden' : ''} ${textSizeClass} font-bold`}>{progress}
+      <div className={`min-h-12 mt-1 flex justify-center text-center ${progress >= 100 ? 'text-green-500' : progress >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+        <span className={`${textSizeClass} font-bold`}>{progress}
           <span className="inline-block align-baseline text-xs">%</span>
         </span>
-        <span className={`text-xs lg:text-lg -mt-1`}>{totalEarned}/{total}</span>
+        {/* <span className={`-mt-1 -ml-2 ${textSmallClass}`}>{totalEarned}/{total}</span> */}
       </div>
     </>)
   };
@@ -95,7 +94,7 @@ export default function ProgressRing({
             <span className={`text-xs inline-block align-baseline text-gray-300`}>%</span>
           </span>
         )}
-        <span className={`${textSmallSClass} text-gray-400 mt-1`}>{totalEarned}/{total}</span>
+        <span className={`${textSmallClass} text-gray-400 mt-1`}>{totalEarned}/{total}</span>
       </div>
     </div>
   );

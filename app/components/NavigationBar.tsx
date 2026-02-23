@@ -87,7 +87,7 @@ function NavigationBarComponent() {
   };
 
   const navigate = (route: string) => {
-    let navigate;
+    let navigate: string = "";
     let isNavigate = false;
 
     switch (route) {
@@ -113,10 +113,10 @@ function NavigationBarComponent() {
         break;
     }
 
-    if (!isNavigate) return;
-
-    setNavigateRoute(navigate);
-    router.push(navigate);
+    if (isNavigate) {
+      setNavigateRoute(navigate);
+      router.push(navigate);
+    }
   };
 
   return (
