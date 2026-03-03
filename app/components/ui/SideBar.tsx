@@ -1,6 +1,6 @@
 import { useHeader } from "@/providers/HeaderContext";
 import AutoTrimImage from "./AutoTrimImage";
-import { FaClock, FaGamepad } from "react-icons/fa";
+import { FaClock, FaGamepad, FaTrophy } from "react-icons/fa";
 import PlatinumScoreDisplay from "@/app/components/ui/PlatinumScore";
 import { SiMetacritic } from "react-icons/si";
 import { TbTrophy } from "react-icons/tb";
@@ -65,55 +65,60 @@ export default function SideBar({ show }: { show?: boolean }) {
     }) : '';
 
   lastPlayed = lastPlayed.replace('há cerca de ', 'Há ');
-  lastPlayed = lastPlayed.replace(' horas', 'h');
-  lastPlayed = lastPlayed.replace('há', 'Há');
+  lastPlayed = lastPlayed.replace(' horas', ' h');
+  lastPlayed = lastPlayed.replace(' hora', ' h');
 
 
   return (
     <>
       <div
         id="SideBar-shadow"
-        className="-z-3 pt-0 -top-30 -left-10 w-110 absolute bg-linear-90 from-black/80 via-black/50 via-60% to-transparent text-white"
+        className="-z-3 pt-0 -top-30 -left-10 w-110 absolute bg-linear-90 from-black-600/80 via-black/50 via-60% to-transparent text-white"
       ></div>
       <div
-        className="aspect-square glass-apple rounded-lg w-100 h-100 mb-6 text-white"
+        className="aspect-square rounded-lg w-100 h-120 mb-6 text-white"
         style={{
           backgroundImage: `url(${contextBackgroundImage})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
       >
-        <div className="bg-linear-0 from-black/70 via-70% to-transparent w-100 h-100  
-          absolute top-0 left-0 right-0 rounded-lg"/>
-        <div className="bg-radial from-transparent via-65% to-black/70 p-4 w-100 h-100 border border-white/20 
-          absolute top-0 left-0 right-0 rounded-lg">
+        
+        {/* <div className="border-none bg-linear-180 from-black/90 via-10% via-black/30 to-black w-100 h-120 rounded-lg"/> */}
+        <div className="border-none bg-radial-[at_50%_30%] from-transparent via-10% via-black/10 to-black w-100 h-120 rounded-lg"/>
+
+        <div className="p-5 w-100 glass-apple-dark h-120
+          absolute top-0 left-0 right-0 rounded-lg animate-shine-apple">
           
           {/* Conteúdo */}
-          <div className="flex items-center justify-between mb-13">
-            <span className="flex items-center gap-1 font-bold"><FaGamepad className="w-4 h-4 text-white"/> Última sessão de jogo</span>
+          <div className="flex items-center justify-between mb-10">
+            <span className="flex items-center gap-2 font-bold">
+              <FaGamepad className="w-6 h-6 text-white"/> Última sessão de jogo
+            </span>
             <span className="font-light">
               {lastPlayed}
             </span>
           </div>
+
           <AutoTrimImage
               src={contextLogoImage}
               maskImage={false}
               position="center"
-              className="w-full scale-95 h-25 mb-8 px-3 object-cover-custom"
+              className="w-full scale-95 h-28 mb-12 px-3 object-cover-custom"
             />
           
-          <span className="font-bold text-[1.2rem]">
+          <span className="font-bold text-[1.3rem] shadow-xs text-shadow-black/50 text-shadow-xs">
             {focusGame?.localizedName}
           </span>
 
-          <div className="flex flex-col mt-8 lg:flex-row">
+          <div className="flex flex-col mt-5 lg:flex-row px-2">
             
             { playedTime !== '0' ? (
-                <div className="flex flex-col justify-start gap-2 w-75 font-thin text-white/70">
+                <div className="flex flex-col justify-start gap-2 w-75 font-thin text-white/80">
                 
                   <span className="flex flex-col lg:flex-row gap-2">
-                    <div className="w-10 flex items-center justify-center">
-                      <FaClock className="w-8 h-8 mt-1"/>
+                    <div className="flex items-center justify-center">
+                      <FaClock className="w-7 h-7 mt-1"/>
                     </div>
                     <div>
                       <p>Tempo jogado</p>
@@ -124,8 +129,8 @@ export default function SideBar({ show }: { show?: boolean }) {
                   </span> 
                   
                   <span className="flex flex-col lg:flex-row gap-2">
-                    <div className="w-10 flex items-center justify-center">
-                      <FaGamepad className="w-8 h-8 mt-1"/>
+                    <div className="flex items-center justify-center">
+                      <FaGamepad className="w-7 h-7 mt-1"/>
                     </div>
                     <div>
                       <p>Sessões jogadas</p>
@@ -135,24 +140,46 @@ export default function SideBar({ show }: { show?: boolean }) {
                     </div>
                     
                   </span> 
+{/* 
+                  <span className="flex flex-col lg:flex-row gap-2">
+                    <div className="flex items-center justify-center">
+                      <FaTrophy className="w-7 h-7 mt-1"/>
+                    </div>
+                    <div>
+                      <p>Progresso troféus</p>
+                      <p className="font-thin">
+                        {focusGame?.completionPercentage}%
+                      </p>
+                    </div>
+                  </span> */}
+
+                  <span className="flex flex-col lg:flex-row gap-2">
+                    <div className="flex items-center justify-center">
+                      <SiMetacritic className="w-7 h-7"/>
+                    </div>
+                    <div>
+                      <p>Metacritic</p>
+                      <p className="font-thin">
+                        {focusGame?.trophyTitle?.metacritc?.metascore}/100
+                      </p>
+                    </div>
+                  </span> 
                 </div>
             ) : <div className="w-75"></div> }
 
-            <div className="w-30 -mt-2">
+            <div className="w-28 mt-10">
               <ProgressRing
                 progress={focusGame?.trophyTitle?.progress}
                 total={focusGame?.trophyTitle?.definedTrophies.bronze + focusGame?.trophyTitle?.definedTrophies.silver + focusGame?.trophyTitle?.definedTrophies.gold + focusGame?.trophyTitle?.definedTrophies?.platinum}
                 earned={focusGame?.earnedTrophies || focusGame?.trophyTitle?.earnedTrophies}
                 hideValue={false}
                 showTrophy={true}
-                textSize={20}
-                size={110}
+                textSize={30}
+                size={120}
               />
             </div>
-            
-          </div>
-          
 
+          </div>
         </div>
       </div>
 
@@ -162,7 +189,7 @@ export default function SideBar({ show }: { show?: boolean }) {
       {!showGameInfo && (
       <div
         id="SideBar"
-        className="z-20 p-5 w-100 glass-apple min-h-60 space-y-6 text-white"
+        className="z-20 p-5 w-100 glass-apple-dark min-h-60 space-y-6 text-white"
       >
         {/* Game Logo image
         {contextLogoImage && (

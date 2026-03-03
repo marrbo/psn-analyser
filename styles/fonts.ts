@@ -1,5 +1,5 @@
 // styles/fonts.ts
-import { Ubuntu, Jersey_10, Funnel_Sans } from "next/font/google";
+import { Ubuntu, Funnel_Sans, Courgette, Jersey_25 } from "next/font/google";
 
 export const ubuntu = Ubuntu({
   weight: ['400', '700'], // Specify the weights you need
@@ -8,11 +8,20 @@ export const ubuntu = Ubuntu({
   variable: '--font-ubuntu', // Define a CSS variable name
 });
 
-export const jersey = Jersey_10 ({
+export const jersey = Jersey_25 ({
   weight: ['400'],
   subsets: ['latin'],
   display: 'swap',
-  variable: '--font-jersey-10',
+  variable: '--font-jersey-25',
+})
+
+export const courgette = Courgette ({
+  weight: ['400'],
+  subsets: ['latin', 'latin-ext'],
+  preload: true,
+  style: 'normal',
+  display: 'swap',
+  variable: '--font-courgette',
 })
 
 export const funnel = Funnel_Sans ({

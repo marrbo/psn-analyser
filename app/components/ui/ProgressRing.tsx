@@ -37,7 +37,7 @@ export default function ProgressRing({
   const totalEarned = earned.bronze + earned.silver + earned.gold + earned?.platinum || 0;
   const textSizeClass = `text-[${textSize + 4}pt]`;
   const textSmallClass = `text-[${textSize - 2}pt]`;
-  const sizeTrophy = ((10 / size) * 0.5 * 100).toPrecision(1); // Ajusta o tamanho do troféu proporcionalmente ao tamanho do anel
+  const sizeTrophy = ((20 / size) * 0.5 * 100).toPrecision(1); // Ajusta o tamanho do troféu proporcionalmente ao tamanho do anel
   const trophySize = `w-${sizeTrophy} h-${sizeTrophy}`;
   console.log('trophySize:', trophySize);
 
@@ -68,7 +68,7 @@ export default function ProgressRing({
           stroke="currentColor"
           strokeWidth={strokeWidth}
           fill="transparent"
-          className="text-gray-700/70"
+          className="text-gray-600"
         />
         <circle
           cx={size / 2}
@@ -94,7 +94,7 @@ export default function ProgressRing({
             <span className={`text-xs inline-block align-baseline text-gray-300`}>%</span>
           </span>
         )}
-        <span className={`${textSmallClass} text-gray-400 mt-1`}>{totalEarned}/{total}</span>
+        <span className={`${textSmallClass} text-gray-200 font-thin mt-1`}>{totalEarned}/{total}</span>
       </div>
     </div>
   );

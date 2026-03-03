@@ -30,7 +30,7 @@ export default function TopBar({profilePicture = '/default-avatar.png', userName
   return (
     <>
       <div id="TopBar" className="z-100 pt-1 h-35 text-white">
-          <div className="flex m-3 h-22 lg:h-25 items-center glass-apple">
+          <div className="flex m-3 h-22 lg:h-25 items-center glass-apple-dark lg:glass-apple">
             
             {/* <div className="absolute left-3 w-35 top-1.5 flex justify-between items-center">
               <FaPlaystation className="w-12 h-12 mr-2" />

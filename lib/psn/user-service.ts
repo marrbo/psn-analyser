@@ -15,11 +15,6 @@ export class PSNUserService {
       const userCache = await this.userRepository.findOne({ onlineId: username });
 
       if (userCache) {
-        if (!userCache._cacheId) {
-          userCache._cacheId = userCache._cacheId ?? userCache.accountId;
-          await this.userRepository.updateById(userCache._id, userCache);  
-        }
-
         const userPresence = await this.getUserPresence(userCache?.accountId);
 
         if (userPresence && userPresence.currentOnlineId) {
@@ -58,9 +53,7 @@ export class PSNUserService {
         return null;
       }
     } catch (error) {
-      console.error('💥 Erro ao converter username:', error);
-
-      return null;
+      throw new Error(`💥 Erro ao converter username: ${error}`);
     }
   }
 

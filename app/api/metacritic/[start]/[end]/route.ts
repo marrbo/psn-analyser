@@ -10,15 +10,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const { start, end } = await context.params;
     const metacritchService = await metacriticScraper.scrapeMultiplePagesParallel(Number(start), Number(end), 50);
   
-    if (metacritchService && metacritchService.length > 0) {
-      return NextResponse.json(metacritchService, { status: 200 });
-    }
-  
     return NextResponse.json({ 
       status: 'success',
-      message: 'API is working!',
-      timestamp: new Date().toISOString()
-  });
+      message: 'Metacritic data updated!',
+      timestamp: new Date().toISOString(),
+      metacritchService
+    }, { status: 200 });
+
 } catch (error) {
     console.error('Error in /api/metacritic/pages route:', error);
     return NextResponse.json({ 

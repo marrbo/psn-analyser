@@ -286,10 +286,6 @@ export default function TrophyFilters({
               </button>
             </div>
 
-            <div className="w-15 h-15 p-3 bg-gray-600/60 rounded-lg text-md flex gap-1 items-center justify-center text-white">
-              <FaTrophy className="h-6 w-6" /> {filteredItemsCount}
-            </div>
-
             {/* <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
               <FaSort className="text-gray-400" />
             </div> */}
@@ -466,7 +462,7 @@ export default function TrophyFilters({
                     <span
                       className={`text-xs ${statusInfo?.color || "text-green-300"}`}
                     >
-                      {statusInfo?.label || status}
+                      {statusInfo?.label || status} [{filteredItemsCount}]
                     </span>
                     <span
                       onClick={() => handleFilterSelect("status", status)}

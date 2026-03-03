@@ -34,7 +34,9 @@ export default function Home() {
       setCurrentStep('Convertendo psnId...');
       updateProgress(2);
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
+      let data = { details: '', cached: false, analysisId: null, timeRemaining: null };
+
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: {
@@ -43,15 +45,16 @@ export default function Home() {
         body: JSON.stringify({ username }),
       });
 
-      const data = await response.json();
+      data = await response.json();
 
       if (!response.ok) {
         // Verificar se é erro de análise recente
         if (data.cached && data.timeRemaining) {
           throw new Error(`ANALISE_RECENTE:${data.timeRemaining}:${data.analysisId}`);
         }
-        throw new Error(data.error || 'Erro na análise');
-      }
+
+        throw new Error(data.details || 'Erro na análise');
+      }  
 
       // Se é análise em cache, redirecionar imediatamente
       if (data.cached && data.analysisId) {

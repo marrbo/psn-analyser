@@ -3,8 +3,9 @@ import { ScoreBreakdown } from '@/types/analysis.type';
 import { GameMetacritic } from '@/types/metacritc';
 import { PSNUser } from '@/types/psn';
 import { GameTitle, GotyStats, TrophySummary, TrophyTitle } from '@/types/trophies';
-import { MongoClient, Db, ObjectId } from 'mongodb';
+import { MongoClient, Db, ObjectId, UpdateResult } from 'mongodb';
 import { normalizeText } from './utils/text';
+import { MetacriticUpdateResult } from './metacritc-scraper';
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/psn_analyser';
 const MONGODB_DB = process.env.MONGODB_DB || 'psn_analyser';
@@ -128,12 +129,20 @@ export async function saveAnalysis(accountId: string, username: string, analysis
   }
 }
 
-export async function saveMetacritc(gamesData: GameMetacritic[]): Promise<number> {
+export async function saveMetacritc(gamesData: GameMetacritic[]): Promise<MetacriticUpdateResult> {
   const { db } = await connectToDatabase();
+  const updateResult = await db.collection<GameMetacritic>('metacritc').updateMany(
+    { name: { $in: gamesData.map(game => game.name) } },
+    { $set: gamesData.map(game => ({
+        ...game,
+        normalizedName: normalizeText(game.name),
+        lastUpdated: new Date()
+      }))
+    },
+    { upsert: true }
+  );
 
-  const updateResult = await db.collection<GameMetacritic>('metacritc').insertMany(gamesData, { ordered: false })
-
-  return updateResult.insertedCount;
+  return { modifiedCount: updateResult.modifiedCount, matchedCount: updateResult.matchedCount, upsertedCount: updateResult.upsertedCount };
 }
 
 export async function updateNormalizedTextMetacritc(): Promise<void> {
@@ -156,20 +165,22 @@ export async function getMetacritcGameData(title: string, npCommunicationId: str
   const { db } = await connectToDatabase();
   const normalizedName = normalizeText(title);
 
-  const game = await db.collection<GameMetacritic>('metacritc').findOne({
+  let game = await db.collection<GameMetacritic>('metacritc').findOne({
               normalizedName: { $eq: normalizedName }
           });
 
-    if (game) {
-      await db.collection<GameMetacritic>('metacritc').updateOne(
-        { _id: game._id },
-        { $set: { npCommunicationId, normalizedName } }
-      );
-  }
-
   if (!game) {
-    return null;
+    game = await db.collection<GameMetacritic>('metacritc').findOne({
+          normalizedName: { $regex: `${normalizedName}`, $options: 'i' }
+      });
   } 
+
+  if (game) {
+    await db.collection<GameMetacritic>('metacritc').updateOne(
+      { _id: game._id },
+      { $set: { npCommunicationId, normalizedName } }
+    );
+  }
 
   return game;
 }
@@ -234,13 +245,13 @@ export async function canCreateNewAnalysis(accountId: string): Promise<{
   if (!existingAnalysis) {
     return { canCreate: true };
   }
-
+  
   const now = Date.now();
   const renewAt = existingAnalysis.renewAt?.getTime() || Date.now() + 60 * 60 * 1000;
   const timeRemaining = renewAt - now;
 
   return {
-    canCreate: false,
+    canCreate: timeRemaining <= 0,
     existingAnalysis,
     timeRemaining: Math.max(0, timeRemaining)
   };

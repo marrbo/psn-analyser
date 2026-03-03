@@ -13,6 +13,12 @@ export interface ScrapMetacritcResult {
 // Definindo os tipos possíveis da ESRB para evitar erros de digitação
 export type ESRBRating = 'E' | 'E10+' | 'T' | 'M' | 'AO' | 'RP';
 
+export interface MetacriticUpdateResult { 
+  modifiedCount: number, 
+  matchedCount: number, 
+  upsertedCount: number 
+}
+
 export class MetacriticScraper {
   private readonly baseUrl = 'https://www.metacritic.com';
   private readonly userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
@@ -23,7 +29,8 @@ export class MetacriticScraper {
     } = options;
 
     try {
-      const url = `${this.baseUrl}/browse/game/?platform=pc&platform=ps5&platform=ps3&platform=ps1&platform=ps2&platform=ps4&platform=psp&platform=ps-vita&page=${page}`;
+      // const url = `${this.baseUrl}/browse/game/?platform=pc&platform=ps5&platform=ps3&platform=ps1&platform=ps2&platform=ps4&platform=psp&platform=ps-vita&page=${page}`;
+      const url = `${this.baseUrl}/browse/game/all/all/current-year/metascore/?page=${page}`;
 
       const response = await axios.get(url, {
         headers: {
@@ -105,23 +112,25 @@ export class MetacriticScraper {
     endPage: number,
     batchSize: number = 10,
     options?: Omit<ScrapingOptions, 'page'>
-  ): Promise<GameMetacritic[]> {
+  ): Promise<MetacriticUpdateResult> {
     // Cria arrays de ranges baseados no batchSize
     const ranges = this.createRanges(startPage, endPage, batchSize);
 
     // Cria um array de Promises para cada range
-    const promises = ranges.map(range =>
-      this.scrapeRangeSequentially(range.start, range.end, options)
-    );
+    const promises = ranges.map(range => this.scrapeRangeSequentially(range.start, range.end, options));
 
     // Executa todas as promises em paralelo
     const results = await Promise.all(promises);
 
     // Junta todos os resultados
-    const allGames = results.flat();
-    // const updateResult = await saveMetacritc(allGames);
+    const resultMetacritic: MetacriticUpdateResult = results.reduce((acc, curr) => {
+      acc.modifiedCount += curr.modifiedCount;
+      acc.matchedCount += curr.matchedCount;
+      acc.upsertedCount += curr.upsertedCount;
+      return acc;
+    }, { modifiedCount: 0, matchedCount: 0, upsertedCount: 0 });
 
-    return allGames;
+    return resultMetacritic;
   }
 
   // Função auxiliar para criar ranges
@@ -144,8 +153,9 @@ export class MetacriticScraper {
     start: number,
     end: number,
     options?: Omit<ScrapingOptions, 'page'>
-  ): Promise<GameMetacritic[]> {
+  ): Promise<MetacriticUpdateResult> {
     const games: GameMetacritic[] = [];
+    let returnData: MetacriticUpdateResult = { modifiedCount: 0, matchedCount: 0, upsertedCount: 0 };
 
     for (let page = start; page <= end; page++) {
       try {
@@ -153,7 +163,7 @@ export class MetacriticScraper {
         
         games.push(...pageGames);
 
-        await saveMetacritc(pageGames);
+        returnData = await saveMetacritc(pageGames);
         
         // Delay para não sobrecarregar o servidor
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -164,12 +174,12 @@ export class MetacriticScraper {
       }
     }
 
-    return games;
+    return returnData;
   }
 
   // Método original mantido para compatibilidade
-  async scrapeMultiplePages(pages: number = 1, options?: Omit<ScrapingOptions, 'page'>): Promise<GameMetacritic[]> {
-    return this.scrapeMultiplePagesParallel(1, pages, 1, options);
+  async scrapeMultiplePages(pages: number = 1, options?: Omit<ScrapingOptions, 'page'>): Promise<MetacriticUpdateResult> {
+    return await this.scrapeMultiplePagesParallel(1, pages, 1, options);
   }
 
   async getMetacritcScore(gameTitle: string, npCommunicationId: string): Promise<number> {

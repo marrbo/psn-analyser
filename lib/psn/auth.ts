@@ -8,6 +8,7 @@ interface Token {
   refresh_token: string;
   expires_in: number;
   id_token: string;
+  lastUpdated: Date;
   refresh_token_expires_in: number;
   scope: string;
   token_type: string;
@@ -31,13 +32,13 @@ export class PSNAuth {
     this.cache = new CacheService(this.npsso, 'tokens');
   }
 
-  private getExpired(expiresIn: number): boolean {
-    if (this.token) {
+  private getExpired(token: Token): boolean {
+    if (token) {
       const expirationDate = new Date(
-        Date.now() + expiresIn * 1000
+        new Date(token.lastUpdated || new Date()).getTime() + token.expires_in * 1000
       ).toISOString();  
 
-      return new Date(expirationDate).getTime() < Date.now();
+      return new Date(expirationDate).getTime() < new Date().getTime();
     }
     return true;
   }
@@ -45,7 +46,7 @@ export class PSNAuth {
   private accessTokenExpired(): boolean {
     let expired = true;
     if (this.token) {
-      expired = this.getExpired(this.token.expires_in);
+      expired = this.getExpired(this.token);
     }
     return expired;
   }
@@ -53,7 +54,7 @@ export class PSNAuth {
   private refreshTokenExpired(): boolean {
     let expired = true;
     if (this.token) {
-      expired = this.getExpired(this.token.refresh_token_expires_in)
+      expired = this.getExpired(this.token)
     }
     return expired;
   }
@@ -207,9 +208,9 @@ export class PSNAuth {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Erro no refreshToken:', errorText);
-      throw new Error(`Falha no refreshToken: ${response.status} - ${errorText}`);
+      const errorText = await response.json();
+      console.error('❌ Erro no refreshToken: code: {0}, error: {1}', errorText.error_code, errorText.error_description);
+      throw new Error(`Falha no refreshToken: ${response.status} - ${errorText.error_description || errorText.error}`);
     }
 
     const tokenData = await response.json();

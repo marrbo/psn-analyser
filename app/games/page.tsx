@@ -12,7 +12,7 @@ import DurationDisplay from "../components/ui/DurationDisplay";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import GameFilters, { FiltersState } from "../components/ui/GameFilters";
 import PaginationWithIcons from "../components/ui/PaginationWithIcons";
-import { FaAward, FaClock, FaGamepad, FaStore } from "react-icons/fa";
+import { FaAward, FaClock, FaGamepad } from "react-icons/fa";
 import { SiMetacritic } from "react-icons/si";
 
 function GamesPageContent() {
@@ -33,19 +33,15 @@ function GamesPageContent() {
     setTrophyData,
     setOnClick,
     setFocusGame,
-    setHeroImage,
-    setLogoImage,
     isMobile,
     setAnalysisData,
   } = useHeader();
 
   const setGameInFocus = useCallback(
     (game: GameTitle) => {
-      setHeroImage(null);
-      setLogoImage(null);
       setFocusGame(game);
     },
-    [setFocusGame, setHeroImage, setLogoImage],
+    [setFocusGame],
   );
 
   // Estados para filtros, ordenação e busca
@@ -457,16 +453,14 @@ function GamesPageContent() {
               key={game.titleId}
               onMouseEnter={() => setGameInFocus(game)}
               href={`/games/${game.trophyTitle.npCommunicationId}?accountId=${accountId}`}
-              className={`group glass-apple h-25 lg:h-30.5 backdrop-blur-[5px] mask-intersect
+              className={`group glass-apple-dark h-25.5 lg:h-34.5 p-1 lg:p-2 mask-intersect
                 bg-blend-difference flex justify-between gap-2 ${hover} transition-all duration-300 transform cursor-pointer`}
             >
-              <div
-                style={{ width: 100 + "%" }}
+              {/* <div
                 className={
                   game?.trophyTitle?.progress > 0
-                    ? `absolute bg-blend-multiply border-none mask-intersect overflow-clip
-                  ${game?.trophyTitle?.progress === 100 ? "bg-green-500/20" : ""} 
-                  ${game?.trophyTitle?.progress > 98 ? "rounded-sm" : ""} h-full w-full`
+                    ? `absolute h-25.5 bg-blend-multiply border-none mask-intersect
+                  ${game?.trophyTitle?.progress === 100 ? "bg-green-500/20" : ""} h-full w-full`
                     : "hidden"
                 }
               >
@@ -476,7 +470,7 @@ function GamesPageContent() {
                     className={`w-screen absolute -left-4 -right-4 bottom-0 bg-green-400/30 block lg:hidden group-hover:block border-t-10 border-green-400/5`}
                   ></div>
                 )}
-              </div>
+              </div> */}
 
               {/* Capa do Jogo */}
               <div className="relative group border-none bg-none">
@@ -485,12 +479,14 @@ function GamesPageContent() {
                   alt={title}
                   width={200}
                   height={200}
-                  className={`shrink-0 h-23 lg:h-28 m-1 max-w-23 lg:max-w-28 aspect-square ${
+                  className={`shrink-0 h-22.5 lg:h-28 m-1 max-w-23 lg:max-w-28 aspect-square ${
                     platformText === "PS3" || game.npServiceName === "trophy"
                       ? PS3andServiceTrophy
                       : "object-cover"
                   } rounded-lg saturate-50 group-hover:scale-105 group-hover:saturate-110 hover:rounded-md group-hover:border-none transform ease-in-out duration-600`}
                 />
+
+                <div className={`absolute right-1.5 top-1.5 w-4.5 h-4.5 -mt-1 ${game.service === 'ps_plus' ? '' : 'hidden'}`}>{gameGetService(game.service)}</div>
 
                 <span
                   className={`absolute left-1/2 transform -translate-x-1/2 bottom-2 flex justify-between gap-2`}
@@ -511,20 +507,20 @@ function GamesPageContent() {
                 
               </div>
 
-              <div className="w-full grid grid-rows-2 pb-2 pt-1">
+              <div className="w-full grid grid-rows-2 pt-1">
                 {/* Título do Jogo */}
                 <div
-                  className={`font-calm ${game?.trophyTitle?.progress === 100 || game?.earnedTrophies?.platinum > 0 ? "text-green-500" : "text-gray-400"} group-hover:text-white flex items-top justify-between text-sm font-semibold lg:text-lg text-left line-clamp-2 lg:truncate drop-shadow-xs text-shadow-black text-shadow-2xs`}
+                  className={`font-pixel ${game?.trophyTitle?.progress === 100 || game?.earnedTrophies?.platinum > 0 ? "text-green-500" : "text-gray-400"} group-hover:text-white flex items-top justify-between text-sm font-semibold lg:text-lg text-left line-clamp-2 lg:truncate drop-shadow-xs text-shadow-black text-shadow-2xs`}
                 >
-                  <span>{title}</span>
+                  <span>{title.replace('™', '')}</span>
                 </div>
 
                 {/* Troféus */}
-                <div className="saturate-20 group-focus:saturate-100 group-hover:saturate-100 w-full -ml-2 space-y-2">
+                <div className="saturate-20 group-focus:saturate-100 group-hover:saturate-100 w-full -ml-2 -mt-3 lg:-mt-1 space-y-2.5">
                   <TrophyMeter
                     data={game.trophyTitle}
-                    hideTotal={isMobile ? true : false}
-                    hidePlatinum={game?.trophyTitle?.definedTrophies?.platinum < 1}
+                    hideTotal={isMobile}
+                    hidePlatinum={game?.trophyTitle?.definedTrophies?.platinum === 0}
                     showEarned={!isMobile}
                     hideLevel={true}
                     size="sm"
@@ -535,14 +531,12 @@ function GamesPageContent() {
                     <li className="list-row p-0 mb-0 mt-2">
                       { (game?.trophyTitle?.metacritc?.metascore ?? 0) > 0 && (
                         <div className="flex flex-row justify-end gap-2 items-center">
-                          <div className="w-4 h-4">{gameGetService(game.service)}</div>
                           <SiMetacritic className="w-4.5 h-4.5" />
                           <div>{game?.trophyTitle?.metacritc?.metascore ?? "tbd"} / 100</div>
                         </div>
                       )}
                       { (game?.trophyTitle?.metacritc?.metascore ?? 0) === 0 && (
                       <div className="flex flex-row justify-end gap-2 items-center">
-                        <div className="w-4 h-4">{gameGetService(game.service)}</div>
                       </div>)}
 
                       {playedTime !== "0" && (
@@ -552,7 +546,7 @@ function GamesPageContent() {
                             <span>
                               <DurationDisplay
                                 isoDuration={playedTime}
-                                format="hours"
+                                format="hhmmss"
                               />
                             </span>
                           </div>

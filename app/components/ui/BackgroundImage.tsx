@@ -4,7 +4,6 @@
 import { useHeader } from "@/providers/HeaderContext";
 import { GameTitle } from "@/types/trophies";
 import { FaImage } from "react-icons/fa";
-import AutoTrimImage from "./AutoTrimImage";
 import { useEffect, useMemo, useRef } from "react";
 
 export const getBackgroundImages = (focusGame: GameTitle | null) => {
@@ -16,6 +15,7 @@ export const getBackgroundImages = (focusGame: GameTitle | null) => {
     let heroImage = null;
     let logoImage = null;
     let backgroundImage = null;
+    let bgFullImage = null;
 
     if (gameImages) {
       heroImage =
@@ -24,6 +24,13 @@ export const getBackgroundImages = (focusGame: GameTitle | null) => {
         gameImages.find((a) => a.type === "LOGO")?.url ||
         focusGame.trophyTitle.trophyTitleIconUrl ||
         null;
+      
+      bgFullImage = 
+        focusGame.backgroundImage ||
+        gameImages.find((a) => a.type === "BACKGROUND_LAYER_ART")?.url ||
+        gameImages.find((a) => a.type === "GAMEHUB_COVER_ART")?.url ||
+        "/bg.jpg";
+
       backgroundImage =
         focusGame.backgroundImage ||
         gameImages.find((a) => a.type === "GAMEHUB_COVER_ART")?.url ||
@@ -33,17 +40,18 @@ export const getBackgroundImages = (focusGame: GameTitle | null) => {
         focusGame.trophyTitle.trophyTitleIconUrl ||
         "/bg.jpg";
 
-      return { backgroundImage, heroImage, logoImage };
+      return { backgroundImage, bgFullImage, heroImage, logoImage };
     } else {
       return {
         backgroundImage: focusGame.backgroundImage || "/bg.jpg",
+        bgFullImage: focusGame.backgroundImage || "/bg.jpg",
         heroImage: focusGame.heroImage || null,
         logoImage: focusGame.logoImage || null,
       };
     }
   }
 
-  return { backgroundImage: "/bg.jpg", heroImage: null, logoImage: null };
+  return { backgroundImage: "/bg.jpg", bgFullImage: "/bg.jpg", heroImage: null, logoImage: null };
 };
 
 export default function BackgroundImage() {
@@ -51,7 +59,8 @@ export default function BackgroundImage() {
     show,
     focusGame,
     backgroundImage: contextBackgroundImage,
-    heroImage: contextHeroImage,
+    bgFullImage: contextBgFullImage,
+    setBgFullImage,
     setBackgroundImage,
     setHeroImage,
     setLogoImage,
@@ -67,10 +76,10 @@ export default function BackgroundImage() {
 
   // Calcular imagens apenas quando focusGame mudar
   const calculatedImages = useMemo(() => {
-    const { backgroundImage, heroImage, logoImage } =
+    const { backgroundImage, bgFullImage, heroImage, logoImage } =
       getBackgroundImages(focusGame);
 
-    return { backgroundImage, heroImage, logoImage };
+    return { backgroundImage, bgFullImage, heroImage, logoImage };
   }, [focusGame]);
 
   // Efeito para atualizar automaticamente as imagens no contexto
@@ -83,14 +92,16 @@ export default function BackgroundImage() {
       !imagesCalculatedRef.current
     ) {
       if (focusGame) {
-        const { backgroundImage, heroImage, logoImage } = calculatedImages;
+        const { backgroundImage, bgFullImage, heroImage, logoImage } = calculatedImages;
 
         setBackgroundImage(backgroundImage);
+        setBgFullImage(bgFullImage);
         setHeroImage(heroImage);
         setLogoImage(logoImage);
         setCoverImage(setCover(focusGame));
       } else {
         // Reset quando não há jogo focado
+        setBgFullImage(FALLBACK_IMAGE);
         setBackgroundImage(FALLBACK_IMAGE);
         setHeroImage(null);
         setLogoImage(null);
@@ -113,11 +124,11 @@ export default function BackgroundImage() {
   const backgroundImage =
     contextBackgroundImage || calculatedImages.backgroundImage;
 
-  const title = `${focusGame?.gameTitle?.localizedName || focusGame?.trophyTitleName} - ${focusGame?.trophyTitlePlatform}`;
+  const title = `${focusGame?.localizedName || focusGame?.trophyTitle?.trophyTitleName} - ${focusGame?.trophyTitle.trophyTitlePlatform}`;
 
   const backgroundStyle = {
     backgroundColor: "transparent",
-    backgroundImage: `url(${backgroundImage || FALLBACK_IMAGE})`,
+    backgroundImage: `url(${contextBgFullImage || FALLBACK_IMAGE})`,
     backgroundPosition: "center center",
     backgroundRepeat: "no-repeat",
     backgroundAttachment: "fixed",
@@ -161,7 +172,7 @@ export default function BackgroundImage() {
       )}
 
       <div
-        className={`fixed -z-15 saturate-10 opacity-80 top-0 bottom-0 left-0 right-0 bg-cover bg-top-center bg-no-repeat scale-120 lg:scale-100 transition-transform duration-1000 ease-in-out`}
+        className={`fixed -z-15 saturate-130 opacity-80 top-0 bottom-0 left-0 right-0 bg-cover bg-top-center bg-no-repeat scale-120 lg:scale-100 transition-transform duration-1000 ease-in-out`}
         style={backgroundStyle}
       />
     </>

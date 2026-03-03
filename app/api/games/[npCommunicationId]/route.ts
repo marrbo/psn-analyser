@@ -54,13 +54,13 @@ export async function GET(
         t.earned = trophy?.earned || false;
         if (t.earned) {
           t.earnedDateTime = trophy?.earnedDateTime || null;
-          t.progress = trophy?.progress || 0;
-          t.progressRate = trophy?.progressRate || 0;
-          t.progressedDateTime = trophy?.progressedDateTime || null;
-          t.trophyProgressTargetValue = trophy?.trophyProgressTargetValue;
         }
-        t.trophyEarnedRate = trophy?.trophyEarnedRate || 0;
-        t.trophyRare = trophy?.trophyRare || 0;
+        t.progressedDateTime = trophy?.progressedDateTime || t.progressedDateTime;
+        t.progress = trophy?.progress || t.progress;
+        t.trophyProgressTargetValue = trophy?.trophyProgressTargetValue || t.trophyProgressTargetValue;
+        t.progressRate = trophy?.progressRate || t.progressRate;
+        t.trophyEarnedRate = trophy?.trophyEarnedRate || t.trophyEarnedRate;
+        t.trophyRare = trophy?.trophyRare || t.trophyRare;
       }));
 
       group.progress = TrophyService.calculateGroupProgress(group.trophies);
