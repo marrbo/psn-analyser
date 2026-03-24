@@ -2,8 +2,8 @@
 import { ScoreBreakdown } from '@/types/analysis.type';
 import { GameMetacritic } from '@/types/metacritc';
 import { PSNUser } from '@/types/psn';
-import { GameTitle, GotyStats, TrophySummary, TrophyTitle } from '@/types/trophies';
-import { MongoClient, Db, ObjectId, UpdateResult } from 'mongodb';
+import { GameTitle, GotyStats, TrophySummary } from '@/types/trophies';
+import { MongoClient, Db, ObjectId } from 'mongodb';
 import { normalizeText } from './utils/text';
 import { MetacriticUpdateResult } from './metacritc-scraper';
 
@@ -131,30 +131,47 @@ export async function saveAnalysis(accountId: string, username: string, analysis
 
 export async function saveMetacritc(gamesData: GameMetacritic[]): Promise<MetacriticUpdateResult> {
   const { db } = await connectToDatabase();
-  const updateResult = await db.collection<GameMetacritic>('metacritc').updateMany(
-    { name: { $in: gamesData.map(game => game.name) } },
-    { $set: gamesData.map(game => ({
-        ...game,
-        normalizedName: normalizeText(game.name),
-        lastUpdated: new Date()
-      }))
-    },
-    { upsert: true }
-  );
+  const collection = db.collection<GameMetacritic>('metacritic');
 
-  return { modifiedCount: updateResult.modifiedCount, matchedCount: updateResult.matchedCount, upsertedCount: updateResult.upsertedCount };
+  // Se não houver dados, retorna resultado vazio
+  if (gamesData.length === 0) {
+    return { modifiedCount: 0, matchedCount: 0, upsertedCount: 0 };
+  }
+
+  // Prepara operações de bulkWrite para upsert individual baseado em normalizedName (mais confiável)
+  const operations = gamesData.map(game => ({
+    updateOne: {
+      filter: { normalizedName: game.normalizedName }, // campo único/normalizado
+      update: {
+        $set: {
+          ...game,
+          lastUpdated: new Date()
+        }
+      },
+      upsert: true
+    }
+  }));
+
+  // Executa o bulkWrite com ordered: false para permitir que operações continuem mesmo se alguma falhar
+  const result = await collection.bulkWrite(operations, { ordered: false });
+
+  return {
+    modifiedCount: result.modifiedCount,
+    matchedCount: result.matchedCount,
+    upsertedCount: result.upsertedCount
+  };
 }
 
 export async function updateNormalizedTextMetacritc(): Promise<void> {
   const { db } = await connectToDatabase();
 
   // temporário para atualizar com coluna normalized Texto (mais velocidade na busca)
-  const games = await db.collection<GameMetacritic>('metacritc').find({}).toArray();
+  const games = await db.collection<GameMetacritic>('metacritic').find({}).toArray();
 
   for (const game of games) {
     const normalizedName = normalizeText(game.name);
 
-    await db.collection<GameMetacritic>('metacritc').updateOne(
+    await db.collection<GameMetacritic>('metacritic').updateOne(
       { _id: game._id },
       { $set: { normalizedName: normalizedName } }
     );
@@ -165,18 +182,18 @@ export async function getMetacritcGameData(title: string, npCommunicationId: str
   const { db } = await connectToDatabase();
   const normalizedName = normalizeText(title);
 
-  let game = await db.collection<GameMetacritic>('metacritc').findOne({
+  let game = await db.collection<GameMetacritic>('metacritic').findOne({
               normalizedName: { $eq: normalizedName }
           });
 
   if (!game) {
-    game = await db.collection<GameMetacritic>('metacritc').findOne({
+    game = await db.collection<GameMetacritic>('metacritic').findOne({
           normalizedName: { $regex: `${normalizedName}`, $options: 'i' }
       });
   } 
 
   if (game) {
-    await db.collection<GameMetacritic>('metacritc').updateOne(
+    await db.collection<GameMetacritic>('metacritic').updateOne(
       { _id: game._id },
       { $set: { npCommunicationId, normalizedName } }
     );

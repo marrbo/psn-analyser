@@ -70,7 +70,7 @@ async function updateAll(accountId: string) {
 
     return NextResponse.json(
       {
-        error: 'Erro interno do servidor',
+        error: JSON.parse(errorMessage)?.message || 'Ops! Ocorreu um erro inesperado',
         details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
       },
       { status: 500 }
@@ -93,7 +93,7 @@ async function updateGame(accountId: string, npCommunicationId: string) {
     
     await TrophyService.updateUser(analysisId, accountId);
 
-    analysisData.games = analysisData.games.filter(game => game.npCommunicationId === npCommunicationId);
+    analysisData.games = analysisData.games.filter(game => game.trophyTitle?.npCommunicationId === npCommunicationId);
 
     return NextResponse.json({
         analysisId,

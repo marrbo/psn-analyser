@@ -2,7 +2,7 @@
 
 import { useHeader } from "@/providers/HeaderContext";
 import Card, { TrophyMeterData } from "./ui/Card";
-import { UserPresence } from "@/types/psn";
+import { UserPresence, UserProfile } from "@/types/psn";
 import { DefinedTrophies } from "@/types/trophies";
 import { useEffect } from "react";
 import TopBar from "./ui/TopBar";
@@ -106,10 +106,18 @@ function RouteBackComponent() {
   };
 
   let profileName: string | undefined = "Carregando...";
-  let userPresence: UserPresence = {
-    lastOnlineDate: new Date("2025-11-22T03:16:30.519Z"),
-    onlineStatus: "offline",
-    platform: "PS5",
+  let userPresence: UserProfile = {
+    availabilityInfo: {
+      availability: "offline",
+    },
+    primaryPlatformInfo: {
+      onlineStatus: "offline",
+      platform: "PS5",
+      lastOnlineDate: "2025-11-22T03:16:30.519Z",
+    },
+    gameTitleInfoList: {
+      gameTitleInfoList: [],
+    },
   };
 
   const avatar =
@@ -138,7 +146,7 @@ function RouteBackComponent() {
   }
 
   const statusColor =
-    userPresence?.onlineStatus === "offline"
+    (userPresence?.primaryPlatformInfo.onlineStatus === "offline")
       ? "border-red-500/20"
       : "border-green-500";
   console.log("🚀 ~ file: RouteBack.tsx ~ line 81 ~ statusColor", statusColor);
@@ -155,8 +163,8 @@ function RouteBackComponent() {
           userName={profileName}
           psnUser={psnUser}
           trophyMeter={data}
-          lastOnlineDate={userPresence?.lastOnlineDate}
-          avatarStatus={userPresence?.onlineStatus}
+          lastOnlineDate={new Date(userPresence?.primaryPlatformInfo.lastOnlineDate)}
+          avatarStatus={userPresence?.primaryPlatformInfo?.onlineStatus || 'offline'}
         />
         
       </div>

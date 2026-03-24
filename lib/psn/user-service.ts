@@ -1,3 +1,4 @@
+import { UserProfile } from '@/types/psn';
 import { PSNAuth } from './auth';
 import { UserRepository } from '@/types/repository/user-repository';
 
@@ -17,8 +18,8 @@ export class PSNUserService {
       if (userCache) {
         const userPresence = await this.getUserPresence(userCache?.accountId);
 
-        if (userPresence && userPresence.currentOnlineId) {
-          userCache.userPresence = userPresence.basicPresence;
+        if (userPresence && userPresence.primaryPlatformInfo) {
+          userCache.userPresence = userPresence;
           await this.userRepository.updateById(userCache._id, userCache);
         }
         
@@ -57,7 +58,7 @@ export class PSNUserService {
     }
   }
 
-  async getUserPresence(accountId: number | string): Promise<any | null> {
+  async getUserPresence(accountId: number | string): Promise<UserProfile | null> {
     if (!accountId) {
       return null;
     }
@@ -74,11 +75,16 @@ export class PSNUserService {
         }
       );
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
       const data = await response.json();
+
+      if (!response.ok) {
+        if (data.error?.code === 2281486) {
+          return { availabilityInfo: { availability: 'hidden' }, primaryPlatformInfo: { onlineStatus: 'offline', platform: 'ps4', lastOnlineDate: new Date().toISOString() }, gameTitleInfoList: { gameTitleInfoList: [] } } as UserProfile;
+          // return { error: { reason: 'HiddenGamelist' }, onlineStatus: 'offline', platform: 'ps4', lastOnlineDate: new Date() } as UserPresence;
+        }
+        return { availabilityInfo: { availability: 'offline' }, primaryPlatformInfo: { onlineStatus: 'offline', platform: 'ps4', lastOnlineDate: new Date().toISOString() }, gameTitleInfoList: { gameTitleInfoList: [] } } as UserProfile;
+        // return { error: { reason: response.statusText }, onlineStatus: 'offline', platform: 'ps4', lastOnlineDate: new Date() } as UserPresence;;
+      }
 
       return data.basicPresence;
 

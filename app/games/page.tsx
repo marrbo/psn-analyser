@@ -523,19 +523,19 @@ function GamesPageContent() {
                     hidePlatinum={game?.trophyTitle?.definedTrophies?.platinum === 0}
                     showEarned={!isMobile}
                     hideLevel={true}
-                    size="sm"
+                    size="xs"
                   />
 
                   {/* Informações do Jogo */}
                   <ul className="list rounded-md text-gray-300/70 ml-2 gap-0 p-0 text-xs">
                     <li className="list-row p-0 mb-0 mt-2">
-                      { (game?.trophyTitle?.metacritc?.metascore ?? 0) > 0 && (
+                      { (game?.trophyTitle?.metacritic?.metascore ?? 0) > 0 && (
                         <div className="flex flex-row justify-end gap-2 items-center">
                           <SiMetacritic className="w-4.5 h-4.5" />
-                          <div>{game?.trophyTitle?.metacritc?.metascore ?? "tbd"} / 100</div>
+                          <div>{game?.trophyTitle?.metacritic?.metascore ?? "tbd"} / 100</div>
                         </div>
                       )}
-                      { (game?.trophyTitle?.metacritc?.metascore ?? 0) === 0 && (
+                      { (game?.trophyTitle?.metacritic?.metascore ?? 0) === 0 && (
                       <div className="flex flex-row justify-end gap-2 items-center">
                       </div>)}
 

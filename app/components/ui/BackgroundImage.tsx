@@ -26,15 +26,15 @@ export const getBackgroundImages = (focusGame: GameTitle | null) => {
         null;
       
       bgFullImage = 
-        focusGame.backgroundImage ||
+        focusGame.backgroundImage ||  
+        gameImages.find((a) => a.type === "GAMEHUB_COVER_ART")?.url ||  
         gameImages.find((a) => a.type === "BACKGROUND_LAYER_ART")?.url ||
-        gameImages.find((a) => a.type === "GAMEHUB_COVER_ART")?.url ||
         "/bg.jpg";
 
       backgroundImage =
-        focusGame.backgroundImage ||
-        gameImages.find((a) => a.type === "GAMEHUB_COVER_ART")?.url ||
+        gameImages.find((a) => a.type === "BACKGROUND")?.url ||
         gameImages.find((a) => a.type === "BACKGROUND_LAYER_ART")?.url ||
+        gameImages.find((a) => a.type === "GAMEHUB_COVER_ART")?.url ||
         gameImages.find((a) => a.type === "FOUR_BY_THREE_BANNER")?.url ||
         gameImages[0]?.url ||
         focusGame.trophyTitle.trophyTitleIconUrl ||
@@ -118,20 +118,22 @@ export default function BackgroundImage() {
     setHeroImage,
     setLogoImage,
     setCoverImage,
+    setBgFullImage,
   ]);
 
   // Usar imagens do contexto em vez das calculadas localmente
   const backgroundImage =
-    contextBackgroundImage || calculatedImages.backgroundImage;
+    contextBgFullImage || calculatedImages.backgroundImage;
 
   const title = `${focusGame?.localizedName || focusGame?.trophyTitle?.trophyTitleName} - ${focusGame?.trophyTitle.trophyTitlePlatform}`;
 
   const backgroundStyle = {
     backgroundColor: "transparent",
-    backgroundImage: `url(${contextBgFullImage || FALLBACK_IMAGE})`,
+    backgroundImage: `url(${contextBackgroundImage || FALLBACK_IMAGE})`,
     backgroundPosition: "center center",
     backgroundRepeat: "no-repeat",
     backgroundAttachment: "fixed",
+    filter: "saturate(130%) brightness(70%)",
     width: "100vw",
     height: "100vh",
   };
@@ -172,7 +174,7 @@ export default function BackgroundImage() {
       )}
 
       <div
-        className={`fixed -z-15 saturate-130 opacity-80 top-0 bottom-0 left-0 right-0 bg-cover bg-top-center bg-no-repeat scale-120 lg:scale-100 transition-transform duration-1000 ease-in-out`}
+        className={`fixed -z-15 top-0 bottom-0 left-0 right-0 bg-cover bg-top-center bg-no-repeat scale-120 lg:scale-100 transition-transform duration-1000 ease-in-out`}
         style={backgroundStyle}
       />
     </>

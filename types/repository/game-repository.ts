@@ -26,8 +26,8 @@ export class GameRepository<T extends GameTitle> extends BaseRepository<T> {
 
         backgroundImage = (
           focusGame.backgroundImage || 
-          gameImages.find(a => a.type === "BACKGROUND_LAYER_ART")?.url || 
-          gameImages.find(a => a.type === "GAMEHUB_COVER_ART")?.url || 
+          gameImages.find(a => a.type === "BACKGROUND")?.url || 
+          gameImages.find(a => a.type === "BACKGROUND_LAYER_ART")?.url ||
           gameImages.find(a => a.type === "FOUR_BY_THREE_BANNER")?.url || 
           gameImages[0]?.url ||
           focusGame.trophyTitle.trophyTitleIconUrl || 

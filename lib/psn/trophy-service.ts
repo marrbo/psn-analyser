@@ -79,8 +79,8 @@ export default class PSNTrophyService {
       if (resultAnalysis.psnUser) {
         const presence = await UserService.getUserPresence(resultAnalysis?.psnUser.accountId);
 
-        if (presence?.basicPresence) {
-          resultAnalysis.psnUser.userPresence = presence?.basicPresence.primaryPlatformInfo;
+        if (presence) {
+          resultAnalysis.psnUser.userPresence = presence;
           if (resultAnalysis.psnUser._id) {
             const _id: ObjectId = resultAnalysis.psnUser._id;
             await userRepository.updateById(_id,
@@ -130,9 +130,11 @@ export default class PSNTrophyService {
 
       if (resultAnalysis) {
         trophySummary.renewAt = resultAnalysis.renewAt;
-        const gameIndex = resultAnalysis.games.findIndex((game: GameTitle) => {
-          return game.npCommunicationId === npCommunicationId;
-        });
+        const gameIndex = resultAnalysis.games.findIndex(game => game.trophyTitle?.npCommunicationId === npCommunicationId);
+
+        if (gameIndex === -1) {
+          throw new Error('Jogo não encontrado');
+        }
 
         let gameUpdated = await this.getGameTrophyList(accountId, token, resultAnalysis.games[gameIndex]);
         gameUpdated = await this.transformGameData(gameUpdated, accountId);
@@ -384,6 +386,7 @@ export default class PSNTrophyService {
       if (data.titles) {
         const trophyTitle: TrophyTitle = data.titles[0].trophyTitles[0];
         trophyTitle.npTitleId = data.titles[0].npTitleId;
+        trophyTitle.titleId = trophyTitle.npTitleId;
 
         return trophyTitle;
       }
@@ -506,22 +509,22 @@ export default class PSNTrophyService {
 
       game.trophyGroups = trophyGroups;
       game.completionPercentage = completionRate;
-      game.trophyTitle.metacritc = metacriticGame;
+      game.trophyTitle.metacritic = metacriticGame;
       game.trophyTitle.isGoty = gotyMatch.isGoty;
       game.trophyTitle.gotyData = gotyMatch.gameData || null;
 
       for (const group of game.trophyGroups) {
         const userTrophies: TrophyDetail[] = await this.getUserGroupTrophiesForGame(
           accountId,
-          game.npCommunicationId,
+          game.trophyTitle?.npCommunicationId,
           group.trophyGroupId,
-          game.npServiceName
+          game.trophyTitle?.npServiceName
         );
 
         const gameTrophies: TrophyDetail[] = await this.getGroupTrophiesForGame(
-          game.npCommunicationId,
+          game.trophyTitle?.npCommunicationId,
           group.trophyGroupId,
-          game.npServiceName
+          game.trophyTitle?.npServiceName
         );
 
         group.trophies = gameTrophies;
@@ -562,8 +565,8 @@ export default class PSNTrophyService {
       }
 
       
-      game.platform = game.trophyTitle.trophyTitlePlatform || this.getPlatform(game?.category);
-      const hasPlatinum = game.earnedTrophies.platinum > 0 || game.hasPlatinum || game.trophyTitle.progress === 100 || false;
+      game.platform = game.trophyTitle?.trophyTitlePlatform || this.getPlatform(game?.category);
+      const hasPlatinum = (game.trophyTitle?.earnedTrophies?.platinum || 0) > 0 || game.hasPlatinum || game.trophyTitle.progress === 100 || false;
       const estimatedTimeToPlatinum = this.estimateTimeToPlatinum(totalTrophies);
       const hoursPlayed = toDecimalHours(game.playDuration);
       const platinumTime = estimatedTimeToPlatinum > hoursPlayed ? hoursPlayed : estimatedTimeToPlatinum;
@@ -579,8 +582,8 @@ export default class PSNTrophyService {
       game.isHighDifficulty = difficulty >= 7;
       game.totalTrophies = totalTrophies;
       game.trophyCount = totalTrophies;
-      game.npCommunicationId = game.npCommunicationId;
-      game.earnedTrophies = game.earnedTrophies;
+      game.npCommunicationId = game.trophyTitle?.npCommunicationId;
+      game.earnedTrophies = game.trophyTitle?.earnedTrophies;
       
       const gameSaved = await this.saveGameToRepository({ ...game });
 
@@ -840,7 +843,6 @@ export default class PSNTrophyService {
     const {
       platinumCount,
       platinumCount100,
-      platinumGroupScore,
       platinumData,
       completionRate,
       completedGames,

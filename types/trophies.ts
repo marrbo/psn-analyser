@@ -86,7 +86,7 @@ export interface GotyStats {
 }
 
 export interface TrophyTitle {
-  npTitleId: any;
+  npTitleId: string;
   titleId: string
   backgroundImage?: string;
   heroImage?: string;
@@ -99,7 +99,7 @@ export interface TrophyTitle {
   definedTrophies: DefinedTrophies;
   earnedTrophies: DefinedTrophies;
   progress: number;
-  metacritc: GameMetacritic | null;
+  metacritic: GameMetacritic | null;
   lastUpdatedDateTime: string;
   trophyGroups: TrophyGroup[];
   isGoty: boolean;
@@ -120,6 +120,7 @@ export enum MediaFormat {
 }
 
 export enum MediaType {
+  BACKGROUND = 'BACKGROUND',
   BACKGROUND_LAYER_ART = 'BACKGROUND_LAYER_ART',
   FOUR_BY_THREE_BANNER = 'FOUR_BY_THREE_BANNER',
   GAMEHUB_COVER_ART = 'GAMEHUB_COVER_ART',

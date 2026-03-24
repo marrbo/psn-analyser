@@ -192,7 +192,7 @@ export default function Home() {
                       <li><strong>Completude:</strong> 40.9% média = 12.3 pontos</li>
                       <li><strong>GOTY 100%:</strong> 2 jogos (0 - 100%) = 0 pontos</li>
                       <li><strong>Alta Dificuldade:</strong> 59 jogos = 10 pontos</li>
-                      <li><strong>Jogos Metacritc 80+:</strong> 59 / 10 = 5.9 pontos (máximo 20)</li>
+                      <li><strong>Jogos Metacritic 80+:</strong> 59 / 10 = 5.9 pontos (máximo 20)</li>
                       <li className="text-cyan-400 font-bold">Total: 37.7 pontos = 🐱 MIADO</li>
                     </ul>
                   </div>

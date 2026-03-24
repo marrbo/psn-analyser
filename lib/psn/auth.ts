@@ -11,6 +11,7 @@ interface Token {
   lastUpdated: Date;
   refresh_token_expires_in: number;
   scope: string;
+  authCode: string;
   token_type: string;
 }
 
@@ -83,17 +84,18 @@ export class PSNAuth {
 
     try {
       // Método IDÊNTICO ao PowerShell - espera o 302 e extrai o code
-      const authCode = await this.getAuthCodePowerShellMethod(this.npsso);
+      const authCode =  await this.getAuthCodePowerShellMethod(this.npsso);
 
       const tokenData = await this.exchangeCodeForToken(authCode);
       this.token = tokenData;
+      this.token.authCode = authCode;
 
-      new CacheService(this.npsso, 'tokens').setItem(tokenData);
+      new CacheService(this.npsso, 'tokens').setItem(this.token);
 
       return this.token;
     } catch (error) {
       console.error('❌ Erro na autenticação:', error);
-      throw error;
+      return this.token;
     }
   }
 
@@ -139,6 +141,9 @@ export class PSNAuth {
         if (!code) {
           throw new Error(`Code não encontrado na URL de redirecionamento: ${location}`);
         }
+
+        this.token.authCode = code;
+        await this.cache.setItem<Token | null>(this.token);
 
         return code;
       }

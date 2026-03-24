@@ -1,20 +1,21 @@
 import { useHeader } from "@/providers/HeaderContext";
 import AutoTrimImage from "./AutoTrimImage";
-import { FaClock, FaGamepad, FaTrophy } from "react-icons/fa";
+import { FaClock, FaGamepad } from "react-icons/fa";
 import PlatinumScoreDisplay from "@/app/components/ui/PlatinumScore";
 import { SiMetacritic } from "react-icons/si";
 import { TbTrophy } from "react-icons/tb";
 import DurationDisplay from "./DurationDisplay";
 import ProgressRing from "./ProgressRing";
-import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { RxValueNone } from "react-icons/rx";
+import { formatDistanceToNow } from 'date-fns';
 
 export default function SideBar({ show }: { show?: boolean }) {
   const {
     logoImage: contextLogoImage,
     focusGame,
     analysisData: contextAnalysisData,
-    backgroundImage: contextBackgroundImage,
+    bgFullImage: contextBgFullImage,
   } = useHeader();
 
   const totalTrophies =
@@ -78,8 +79,9 @@ export default function SideBar({ show }: { show?: boolean }) {
       <div
         className="aspect-square rounded-lg w-100 h-120 mb-6 text-white"
         style={{
-          backgroundImage: `url(${contextBackgroundImage})`,
+          backgroundImage: `url(${contextBgFullImage})`,
           backgroundSize: "cover",
+          filter: "saturate(120%) brightness(80%)",
           backgroundPosition: "center",
         }}
       >
@@ -160,7 +162,7 @@ export default function SideBar({ show }: { show?: boolean }) {
                     <div>
                       <p>Metacritic</p>
                       <p className="font-thin">
-                        {focusGame?.trophyTitle?.metacritc?.metascore}/100
+                        {focusGame?.trophyTitle?.metacritic?.metascore}/100
                       </p>
                     </div>
                   </span> 
@@ -170,7 +172,10 @@ export default function SideBar({ show }: { show?: boolean }) {
             <div className="w-28 mt-10">
               <ProgressRing
                 progress={focusGame?.trophyTitle?.progress}
-                total={focusGame?.trophyTitle?.definedTrophies.bronze + focusGame?.trophyTitle?.definedTrophies.silver + focusGame?.trophyTitle?.definedTrophies.gold + focusGame?.trophyTitle?.definedTrophies?.platinum}
+                total={(focusGame?.trophyTitle?.definedTrophies?.bronze || 0) 
+                  + (focusGame?.trophyTitle?.definedTrophies?.silver || 0) 
+                  + (focusGame?.trophyTitle?.definedTrophies?.gold || 0) 
+                  + (focusGame?.trophyTitle?.definedTrophies?.platinum || 0)}
                 earned={focusGame?.earnedTrophies || focusGame?.trophyTitle?.earnedTrophies}
                 hideValue={false}
                 showTrophy={true}
@@ -223,14 +228,14 @@ export default function SideBar({ show }: { show?: boolean }) {
         </div> */}
 
         {/* Description */}
-        {/* {focusGame?.metacritc?.description && (
+        {/* {focusGame?.metacritic?.description && (
           <div className="flex items-center justify-between gap-4 h-30">
             <div className="w-full">
               <p className="text-xs font-mono text-gray-400 mb-2">
                 description:{" "}
               </p>
               <p className="text-xs rounded-lg min-h-20 max-h-25 overflow-y-auto text-justify">
-                {focusGame?.metacritc?.description}
+                {focusGame?.metacritic?.description}
               </p>
             </div>
           </div>
@@ -242,7 +247,7 @@ export default function SideBar({ show }: { show?: boolean }) {
             <p className="text-xs font-mono text-gray-400">metacritic: </p>
             <p className="font-pixel text-3xl gap-1 flex items-center">
               <SiMetacritic className="w-4.5 h-4.5" />
-              {focusGame?.trophyTitle?.metacritc?.metascore}/100
+              {focusGame?.trophyTitle?.metacritic?.metascore}/100
             </p>
           </div>
 
@@ -253,9 +258,9 @@ export default function SideBar({ show }: { show?: boolean }) {
 
           <div className="w-40 text-right">
             <p className="text-xs font-mono text-gray-400">DLCs: </p>
-            <p className="font-pixel text-3xl">
+            <p className="font-pixel text-3xl flex items-end justify-end gap-2 mr-3 mt-1">
               {(focusGame?.trophyTitle?.trophyGroupCount || 1) - 1 <= 1
-                ? "Não possui"
+                ? <RxValueNone className="w-6 h-6"/>
                 : (focusGame?.trophyTitle?.trophyGroupCount || 2) - 1}
             </p>
           </div>
@@ -290,9 +295,9 @@ export default function SideBar({ show }: { show?: boolean }) {
             <p className="text-xs font-mono text-gray-400">classificação: </p>
             <p className="flex items-end justify-end">
               <span
-                className={`mt-2 font-bold w-11 h-10 pt-1 px-1 rounded-md text-center text-2xl ${classificacao(focusGame?.metacritc?.rated || "PE")} `}
+                className={`mt-2 font-bold w-11 h-10 pt-1 px-1 rounded-md text-center text-2xl ${classificacao(focusGame?.trophyTitle?.metacritic?.rated || "PE")} `}
               >
-                {(focusGame?.trophyTitle?.metacritc?.rated_br || "RP")
+                {(focusGame?.trophyTitle?.metacritic?.rated_br || "RP")
                   .toUpperCase()
                   .substring(0, 2)}
               </span>
