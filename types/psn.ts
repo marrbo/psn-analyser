@@ -17,13 +17,45 @@ export interface PSNUser {
   onlineId?: string;
   fullProfile?: SocialMetadata;
   lastAnalysisId?: string;
-  userPresence?: UserPresence;
+  userPresence?: UserProfile;
 }
 
 export interface UserPresence   {
   onlineStatus: string;
   platform: string,
   lastOnlineDate: Date
+  error?: { reason: string }
+}
+
+export interface AvailabilityInfo {
+  availability: string;
+}
+
+export interface PrimaryPlatformInfo {
+  onlineStatus: string;
+  platform: string;
+  lastOnlineDate: string;
+}
+
+export interface ConceptIconUrl {
+  conceptIconUrl: string;
+}
+
+export interface GameTitleInfo {
+  npTitleId: string;
+  titleName: string;
+  format: string;
+  launchPlatform: string;
+}
+
+export interface GameTitleInfoList {
+  gameTitleInfoList: GameTitleInfo[];
+}
+
+export interface UserProfile {
+  availabilityInfo: AvailabilityInfo;
+  primaryPlatformInfo: PrimaryPlatformInfo;
+  gameTitleInfoList: GameTitleInfoList;
 }
 
 export interface ProfilePictures {

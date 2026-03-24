@@ -7,7 +7,7 @@ export default function LoadingSpinner({ title, subtitle }: { title: string, sub
           <div className="w-20 h-20 border-8 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <div className="w-20 h-20 border-8 border-green-400 border-b-transparent rounded-full animate-spin-reverse absolute top-0 left-1/2 transform -translate-x-1/2"></div>
         </div>
-        <h2 className="text-5xl font-bold bg-linear-to-r from-blue-400 to-green-500 bg-clip-text text-transparent mb-2">
+        <h2 className="text-5xl font-games font-bold bg-linear-to-r from-blue-400 to-green-500 bg-clip-text text-transparent mb-2">
           {title || 'ANALISANDO ...'}
         </h2>
         <p className="text-gray-400">{ subtitle || 'Carregando dados épicos...'}</p>

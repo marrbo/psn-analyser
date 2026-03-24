@@ -2,48 +2,56 @@
 "use client";
 
 import { useHeader } from "@/providers/HeaderContext";
-import { TrophyTitle } from "@/types/trophies";
+import { GameTitle } from "@/types/trophies";
 import { FaImage } from "react-icons/fa";
-import AutoTrimImage from "./AutoTrimImage";
 import { useEffect, useMemo, useRef } from "react";
 
-export const getBackgroundImages = (focusGame: TrophyTitle | null) => {
+export const getBackgroundImages = (focusGame: GameTitle | null) => {
   if (focusGame) {
     const gameImages =
-      focusGame.gameTitle?.media?.images ||
-      focusGame.gameTitle?.concept?.media?.images;
+      focusGame.media?.images ||
+      focusGame.concept?.media?.images;
 
     let heroImage = null;
     let logoImage = null;
     let backgroundImage = null;
+    let bgFullImage = null;
 
     if (gameImages) {
       heroImage =
         gameImages.find((a) => a.type === "HERO_CHARACTER")?.url || null;
       logoImage =
         gameImages.find((a) => a.type === "LOGO")?.url ||
-        focusGame.trophyTitleIconUrl ||
+        focusGame.trophyTitle.trophyTitleIconUrl ||
         null;
+      
+      bgFullImage = 
+        focusGame.backgroundImage ||  
+        gameImages.find((a) => a.type === "GAMEHUB_COVER_ART")?.url ||  
+        gameImages.find((a) => a.type === "BACKGROUND_LAYER_ART")?.url ||
+        "/bg.jpg";
+
       backgroundImage =
-        focusGame.backgroundImage ||
+        gameImages.find((a) => a.type === "BACKGROUND")?.url ||
         gameImages.find((a) => a.type === "BACKGROUND_LAYER_ART")?.url ||
         gameImages.find((a) => a.type === "GAMEHUB_COVER_ART")?.url ||
         gameImages.find((a) => a.type === "FOUR_BY_THREE_BANNER")?.url ||
         gameImages[0]?.url ||
-        focusGame.trophyTitleIconUrl ||
+        focusGame.trophyTitle.trophyTitleIconUrl ||
         "/bg.jpg";
 
-      return { backgroundImage, heroImage, logoImage };
+      return { backgroundImage, bgFullImage, heroImage, logoImage };
     } else {
       return {
         backgroundImage: focusGame.backgroundImage || "/bg.jpg",
+        bgFullImage: focusGame.backgroundImage || "/bg.jpg",
         heroImage: focusGame.heroImage || null,
         logoImage: focusGame.logoImage || null,
       };
     }
   }
 
-  return { backgroundImage: "/bg.jpg", heroImage: null, logoImage: null };
+  return { backgroundImage: "/bg.jpg", bgFullImage: "/bg.jpg", heroImage: null, logoImage: null };
 };
 
 export default function BackgroundImage() {
@@ -51,7 +59,8 @@ export default function BackgroundImage() {
     show,
     focusGame,
     backgroundImage: contextBackgroundImage,
-    heroImage: contextHeroImage,
+    bgFullImage: contextBgFullImage,
+    setBgFullImage,
     setBackgroundImage,
     setHeroImage,
     setLogoImage,
@@ -67,10 +76,10 @@ export default function BackgroundImage() {
 
   // Calcular imagens apenas quando focusGame mudar
   const calculatedImages = useMemo(() => {
-    const { backgroundImage, heroImage, logoImage } =
+    const { backgroundImage, bgFullImage, heroImage, logoImage } =
       getBackgroundImages(focusGame);
 
-    return { backgroundImage, heroImage, logoImage };
+    return { backgroundImage, bgFullImage, heroImage, logoImage };
   }, [focusGame]);
 
   // Efeito para atualizar automaticamente as imagens no contexto
@@ -83,14 +92,16 @@ export default function BackgroundImage() {
       !imagesCalculatedRef.current
     ) {
       if (focusGame) {
-        const { backgroundImage, heroImage, logoImage } = calculatedImages;
+        const { backgroundImage, bgFullImage, heroImage, logoImage } = calculatedImages;
 
         setBackgroundImage(backgroundImage);
+        setBgFullImage(bgFullImage);
         setHeroImage(heroImage);
         setLogoImage(logoImage);
         setCoverImage(setCover(focusGame));
       } else {
         // Reset quando não há jogo focado
+        setBgFullImage(FALLBACK_IMAGE);
         setBackgroundImage(FALLBACK_IMAGE);
         setHeroImage(null);
         setLogoImage(null);
@@ -107,20 +118,22 @@ export default function BackgroundImage() {
     setHeroImage,
     setLogoImage,
     setCoverImage,
+    setBgFullImage,
   ]);
 
   // Usar imagens do contexto em vez das calculadas localmente
   const backgroundImage =
-    contextBackgroundImage || calculatedImages.backgroundImage;
+    contextBgFullImage || calculatedImages.backgroundImage;
 
-  const title = `${focusGame?.gameTitle?.localizedName || focusGame?.trophyTitleName} - ${focusGame?.trophyTitlePlatform}`;
+  const title = `${focusGame?.localizedName || focusGame?.trophyTitle?.trophyTitleName} - ${focusGame?.trophyTitle.trophyTitlePlatform}`;
 
   const backgroundStyle = {
     backgroundColor: "transparent",
-    backgroundImage: `url(${backgroundImage || FALLBACK_IMAGE})`,
+    backgroundImage: `url(${contextBackgroundImage || FALLBACK_IMAGE})`,
     backgroundPosition: "center center",
     backgroundRepeat: "no-repeat",
     backgroundAttachment: "fixed",
+    filter: "saturate(130%) brightness(70%)",
     width: "100vw",
     height: "100vh",
   };
@@ -131,11 +144,11 @@ export default function BackgroundImage() {
 
   return (
     <>
-      <AutoTrimImage
+      {/* <AutoTrimImage
         src={contextHeroImage}
         maskImage={true}
         className="-z-8 bg-center saturate-30 lg:bg-right fixed bottom-0 right-0 min-h-150 lg:min-h-screen min-w-screen lg:min-w-200 lg:w-auto animate-wind-float-slow"
-      />
+      /> */}
 
       {/* <AutoTrimImage 
         src={contextLogoImage} 
@@ -161,23 +174,23 @@ export default function BackgroundImage() {
       )}
 
       <div
-        className={`fixed -z-15 saturate-10 opacity-80 top-0 bottom-0 left-0 right-0 bg-cover bg-top-center bg-no-repeat scale-120 lg:scale-100 transition-transform duration-1000 ease-in-out`}
+        className={`fixed -z-15 top-0 bottom-0 left-0 right-0 bg-cover bg-top-center bg-no-repeat scale-120 lg:scale-100 transition-transform duration-1000 ease-in-out`}
         style={backgroundStyle}
       />
     </>
   );
 }
 
-function setCover(focusGame: TrophyTitle) {
+function setCover(focusGame: GameTitle) {
   const coverImage =
-    focusGame?.gameTitle?.concept?.media.images.find((a) => a.type === "MASTER")
+    focusGame?.concept?.media.images.find((a) => a.type === "MASTER")
       ?.url ||
-    focusGame?.gameTitle?.concept?.media.images.find(
+    focusGame?.concept?.media.images.find(
       (a) => a.type === "PORTRAIT_BANNER",
     )?.url ||
-    focusGame?.gameTitle?.concept?.media.images[1]?.url ||
-    focusGame.gameTitle?.localizedImageUrl ||
-    focusGame.trophyTitleIconUrl ||
+    focusGame?.concept?.media.images[1]?.url ||
+    focusGame?.localizedImageUrl ||
+    focusGame.trophyTitle.trophyTitleIconUrl ||
     "/default-game-cover.webp";
   return coverImage;
 }

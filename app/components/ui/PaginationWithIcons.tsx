@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useHeader } from '@/providers/HeaderContext';
+import { useState } from 'react';
 import { FaArrowCircleDown, FaArrowCircleUp } from 'react-icons/fa';
 import { MdChevronLeft, MdChevronRight, MdFirstPage, MdLastPage } from "react-icons/md";
 
@@ -9,6 +10,7 @@ interface PaginationWithIconsProps {
   onLoadMore?: () => Promise<void>; // Nova prop para carregar mais itens
   hasMore?: boolean; // Controla se há mais itens para carregar
   isLoading?: boolean; // Estado de carregamento
+  itemsPerPage?: number; // Quantidade de itens por página (para exibir no texto)
 }
 
 const PaginationWithIcons = ({
@@ -17,25 +19,12 @@ const PaginationWithIcons = ({
   onPageChange,
   onLoadMore,
   hasMore = false,
-  isLoading = false
+  isLoading = false,
 }: PaginationWithIconsProps) => {
-  const [isMobile, setIsMobile] = useState(false);
-
-  // Detecta se está em mobile
-  useEffect(() => {
-    
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024); // lg breakpoint do Tailwind
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
+  const { isMobile } = useHeader();
   // Função para carregar mais itens (modo mobile)
   const handleLoadMore = async () => {
+    
     if (onLoadMore && !isLoading) {
       await onLoadMore();
     }
@@ -85,85 +74,94 @@ const PaginationWithIcons = ({
     );
   }
 
+  const pageChange = (page: number) => {
+    onPageChange(page);
+  }
+
   // Paginação tradicional para desktop
   return (
-    <>
-    <div className="join mb">
-      {/* Primeira página */}
-      {currentPage  > 1 && (
-      <button className="join-item h-12 w-12" 
-        onClick={() => onPageChange(1)}>
-        <MdFirstPage className="w-8 h-4" />
-      </button>
-      )}
-
-      {/* Botão anterior */}
-      {currentPage > 1 && (
-      <button
-        className="join-item h-12 w-12"
-        onClick={() => onPageChange(currentPage - 1)}
-        aria-label="Página anterior"
-        disabled={currentPage === 1}
-      >
-        <MdChevronLeft className="w-8 h-4" />
-      </button>
-      )}
-
-      {/* Página atual */}
-      {currentPage - 2 > 0 && (
-      <button className="join-item h-12 w-12 flex items-center justify-center" 
-        onClick={() => onPageChange(currentPage - 2)}>
-        {currentPage-2}
-      </button>
-      )}
-      
-      {currentPage - 1 > 0 && (
-        <button className="join-item h-12 w-12 flex items-center justify-center" 
-          onClick={() => onPageChange(currentPage - 1)}>
-          {currentPage-1}
+    <div className="flex items-center justify-between">
+      <div className="join mb">
+        {/* Primeira página */}
+        {currentPage  > 1 && (
+        <button className="join-item h-12 w-12" 
+          onClick={() => pageChange(1)}>
+          <MdFirstPage className="w-8 h-4" />
         </button>
-      )}
-      
-      <button className="join-item h-12 w-12 bg-green-500 font-bold text-black text-xl flex items-center justify-center" disabled>
-        {currentPage}
-      </button>
-      
-      {currentPage + 1 <= totalPages && (
-      <button className="join-item h-12 w-12 flex items-center justify-center" 
-        onClick={() => onPageChange(currentPage + 1)}>
-        {currentPage + 1}
-      </button>
-      )}
-      
-      {currentPage+2 <= totalPages && (
-        <button className="join-item h-12 w-12 flex items-center justify-center" 
-          onClick={() => onPageChange(currentPage + 2)}>
-          {currentPage + 2}
+        )}
+
+        {/* Botão anterior */}
+        {currentPage > 1 && (
+        <button
+          className="join-item h-12 w-12"
+          onClick={() => pageChange(currentPage - 1)}
+          aria-label="Página anterior"
+          disabled={currentPage === 1}
+        >
+          <MdChevronLeft className="w-8 h-4" />
         </button>
-      )}
+        )}
 
-      {/* Botão próximo */}
-      {currentPage < totalPages && (
-      <button
-        className="join-item h-12 w-12 flex items-center justify-center"
-        onClick={() => onPageChange(currentPage + 1)}
-        aria-label="Próxima página"
-        disabled={currentPage === totalPages}
-      >
-        <MdChevronRight className="w-8 h-4" />
-      </button>
-      )}
+        {/* Página atual */}
+        {currentPage - 2 > 0 && (
+        <button className="join-item h-12 w-12 flex items-center justify-center" 
+          onClick={() => pageChange(currentPage - 2)}>
+          {currentPage-2}
+        </button>
+        )}
+        
+        {currentPage - 1 > 0 && (
+          <button className="join-item h-12 w-12 flex items-center justify-center" 
+            onClick={() => pageChange(currentPage - 1)}>
+            {currentPage-1}
+          </button>
+        )}
+        
+        <button className="join-item h-12 w-12 bg-green-500 font-bold text-black text-xl flex items-center justify-center" disabled>
+          {currentPage}
+        </button>
+        
+        {currentPage + 1 <= totalPages && (
+        <button className="join-item h-12 w-12 flex items-center justify-center" 
+          onClick={() => pageChange(currentPage + 1)}>
+          {currentPage + 1}
+        </button>
+        )}
+        
+        {currentPage+2 <= totalPages && (
+          <button className="join-item h-12 w-12 flex items-center justify-center" 
+            onClick={() => pageChange(currentPage + 2)}>
+            {currentPage + 2}
+          </button>
+        )}
 
-      {/* Última página */}
-      {currentPage < totalPages && (
-      <button className="join-item h-12 w-12 " 
-        onClick={() => onPageChange(totalPages)}>
-        <MdLastPage className="w-8 h-4" />
-      </button>
-      )}
+        {/* Botão próximo */}
+        {currentPage < totalPages && (
+        <button
+          className="join-item h-12 w-12 flex items-center justify-center"
+          onClick={() => pageChange(currentPage + 1)}
+          aria-label="Próxima página"
+          disabled={currentPage === totalPages}
+        >
+          <MdChevronRight className="w-8 h-4" />
+        </button>
+        )}
+
+        {/* Última página */}
+        {currentPage < totalPages && (
+        <button className="join-item h-12 w-12 " 
+          onClick={() => pageChange(totalPages)}>
+          <MdLastPage className="w-8 h-4" />
+        </button>
+        )}
+      </div>
+      <div className='text-right space-y-2'>
+        <p className="ml-4 text-md font-bold">
+          Página {currentPage} de {totalPages}
+        </p>
+      </div>
+    
     </div>
-    <span className="ml-4 text-sm">(Página {currentPage} de {totalPages})</span>
-    </>
   );
 };
 

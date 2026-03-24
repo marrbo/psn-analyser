@@ -2,9 +2,10 @@
 import { ScoreBreakdown } from '@/types/analysis.type';
 import { GameMetacritic } from '@/types/metacritc';
 import { PSNUser } from '@/types/psn';
-import { GotyStats, TrophySummary, TrophyTitle } from '@/types/trophies';
+import { GameTitle, GotyStats, TrophySummary } from '@/types/trophies';
 import { MongoClient, Db, ObjectId } from 'mongodb';
 import { normalizeText } from './utils/text';
+import { MetacriticUpdateResult } from './metacritc-scraper';
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/psn_analyser';
 const MONGODB_DB = process.env.MONGODB_DB || 'psn_analyser';
@@ -49,7 +50,7 @@ export interface AnalysisData {
   renewAt: Date;
   lastAccessed: Date;
   trophySummary: TrophySummary;
-  games: TrophyTitle[];
+  games: GameTitle[];
   gotyStats: GotyStats;
 }
 
@@ -128,24 +129,49 @@ export async function saveAnalysis(accountId: string, username: string, analysis
   }
 }
 
-export async function saveMetacritc(gamesData: GameMetacritic[]): Promise<number> {
+export async function saveMetacritc(gamesData: GameMetacritic[]): Promise<MetacriticUpdateResult> {
   const { db } = await connectToDatabase();
+  const collection = db.collection<GameMetacritic>('metacritic');
 
-  const updateResult = await db.collection<GameMetacritic>('metacritc').insertMany(gamesData, { ordered: false })
+  // Se não houver dados, retorna resultado vazio
+  if (gamesData.length === 0) {
+    return { modifiedCount: 0, matchedCount: 0, upsertedCount: 0 };
+  }
 
-  return updateResult.insertedCount;
+  // Prepara operações de bulkWrite para upsert individual baseado em normalizedName (mais confiável)
+  const operations = gamesData.map(game => ({
+    updateOne: {
+      filter: { normalizedName: game.normalizedName }, // campo único/normalizado
+      update: {
+        $set: {
+          ...game,
+          lastUpdated: new Date()
+        }
+      },
+      upsert: true
+    }
+  }));
+
+  // Executa o bulkWrite com ordered: false para permitir que operações continuem mesmo se alguma falhar
+  const result = await collection.bulkWrite(operations, { ordered: false });
+
+  return {
+    modifiedCount: result.modifiedCount,
+    matchedCount: result.matchedCount,
+    upsertedCount: result.upsertedCount
+  };
 }
 
 export async function updateNormalizedTextMetacritc(): Promise<void> {
   const { db } = await connectToDatabase();
 
   // temporário para atualizar com coluna normalized Texto (mais velocidade na busca)
-  const games = await db.collection<GameMetacritic>('metacritc').find({}).toArray();
+  const games = await db.collection<GameMetacritic>('metacritic').find({}).toArray();
 
   for (const game of games) {
     const normalizedName = normalizeText(game.name);
 
-    await db.collection<GameMetacritic>('metacritc').updateOne(
+    await db.collection<GameMetacritic>('metacritic').updateOne(
       { _id: game._id },
       { $set: { normalizedName: normalizedName } }
     );
@@ -156,20 +182,22 @@ export async function getMetacritcGameData(title: string, npCommunicationId: str
   const { db } = await connectToDatabase();
   const normalizedName = normalizeText(title);
 
-  const game = await db.collection<GameMetacritic>('metacritc').findOne({
+  let game = await db.collection<GameMetacritic>('metacritic').findOne({
               normalizedName: { $eq: normalizedName }
           });
 
-    if (game) {
-      await db.collection<GameMetacritic>('metacritc').updateOne(
-        { _id: game._id },
-        { $set: { npCommunicationId, normalizedName } }
-      );
-  }
-
   if (!game) {
-    return null;
+    game = await db.collection<GameMetacritic>('metacritic').findOne({
+          normalizedName: { $regex: `${normalizedName}`, $options: 'i' }
+      });
   } 
+
+  if (game) {
+    await db.collection<GameMetacritic>('metacritic').updateOne(
+      { _id: game._id },
+      { $set: { npCommunicationId, normalizedName } }
+    );
+  }
 
   return game;
 }
@@ -234,13 +262,13 @@ export async function canCreateNewAnalysis(accountId: string): Promise<{
   if (!existingAnalysis) {
     return { canCreate: true };
   }
-
+  
   const now = Date.now();
   const renewAt = existingAnalysis.renewAt?.getTime() || Date.now() + 60 * 60 * 1000;
   const timeRemaining = renewAt - now;
 
   return {
-    canCreate: false,
+    canCreate: timeRemaining <= 0,
     existingAnalysis,
     timeRemaining: Math.max(0, timeRemaining)
   };

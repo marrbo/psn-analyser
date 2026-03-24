@@ -6,11 +6,7 @@ import { TrophyService } from '@/lib/psn/trophy-service';
 import { PSNUser } from '@/types/psn';
 import { userRepository } from '@/types/repository/user-repository';
 
-interface RouteContext {
-  params: Promise<{ id: string }>;
-}
-
-export async function GET(request: NextRequest, context: RouteContext) {
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await context.params;
 

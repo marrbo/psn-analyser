@@ -86,6 +86,7 @@ export interface GotyStats {
 }
 
 export interface TrophyTitle {
+  npTitleId: string;
   titleId: string
   backgroundImage?: string;
   heroImage?: string;
@@ -98,7 +99,7 @@ export interface TrophyTitle {
   definedTrophies: DefinedTrophies;
   earnedTrophies: DefinedTrophies;
   progress: number;
-  metacritc: GameMetacritic | null;
+  metacritic: GameMetacritic | null;
   lastUpdatedDateTime: string;
   trophyGroups: TrophyGroup[];
   isGoty: boolean;
@@ -119,6 +120,7 @@ export enum MediaFormat {
 }
 
 export enum MediaType {
+  BACKGROUND = 'BACKGROUND',
   BACKGROUND_LAYER_ART = 'BACKGROUND_LAYER_ART',
   FOUR_BY_THREE_BANNER = 'FOUR_BY_THREE_BANNER',
   GAMEHUB_COVER_ART = 'GAMEHUB_COVER_ART',
@@ -174,12 +176,16 @@ export interface Concept {
 }
 
 export interface GameTitle {
+  category: string;
+  lastUpdatedDateTime: string;
+  logoImage: string | undefined;
+  heroImage: string | undefined;
+  backgroundImage: string | undefined;
   titleId: string;
   name: string;
   localizedName: string;
   imageUrl: string;
   localizedImageUrl: string;
-  category: Category;
   service: Service;
   sortableName: string;
   playCount: number;
@@ -188,7 +194,8 @@ export interface GameTitle {
   firstPlayedDateTime: string; // ISO 8601 date-time string
   lastPlayedDateTime: string; // ISO 8601 date-time string
   playDuration: string; // ISO 8601 duration format (PT#H#M#S)
-  trophyTitles: TrophyTitle[];
+  trophyTitle: TrophyTitle;
+  trophyGroups: TrophyGroup[];
   
   definedTrophies: DefinedTrophies;
   earnedTrophies: DefinedTrophies;

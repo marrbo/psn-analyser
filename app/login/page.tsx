@@ -34,7 +34,9 @@ export default function Home() {
       setCurrentStep('Convertendo psnId...');
       updateProgress(2);
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
+      let data = { details: '', cached: false, analysisId: null, timeRemaining: null };
+
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: {
@@ -43,15 +45,16 @@ export default function Home() {
         body: JSON.stringify({ username }),
       });
 
-      const data = await response.json();
+      data = await response.json();
 
       if (!response.ok) {
         // Verificar se é erro de análise recente
         if (data.cached && data.timeRemaining) {
           throw new Error(`ANALISE_RECENTE:${data.timeRemaining}:${data.analysisId}`);
         }
-        throw new Error(data.error || 'Erro na análise');
-      }
+
+        throw new Error(data.details || 'Erro na análise');
+      }  
 
       // Se é análise em cache, redirecionar imediatamente
       if (data.cached && data.analysisId) {
@@ -189,7 +192,7 @@ export default function Home() {
                       <li><strong>Completude:</strong> 40.9% média = 12.3 pontos</li>
                       <li><strong>GOTY 100%:</strong> 2 jogos (0 - 100%) = 0 pontos</li>
                       <li><strong>Alta Dificuldade:</strong> 59 jogos = 10 pontos</li>
-                      <li><strong>Jogos Metacritc 80+:</strong> 59 / 10 = 5.9 pontos (máximo 20)</li>
+                      <li><strong>Jogos Metacritic 80+:</strong> 59 / 10 = 5.9 pontos (máximo 20)</li>
                       <li className="text-cyan-400 font-bold">Total: 37.7 pontos = 🐱 MIADO</li>
                     </ul>
                   </div>

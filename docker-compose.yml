@@ -22,12 +22,11 @@ services:
           path: package.json
 
   mongodb:
-    image: mongo:6.0
+    image: mongo:7.0
     ports:
       - "27017:27017"
     environment:
       - MONGO_INITDB_DATABASE=psn-analyser
-      #- MONGO_INITDB_DATABASE=psn-analyser
     volumes:
       - mongodb_data:/data/db
       - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro

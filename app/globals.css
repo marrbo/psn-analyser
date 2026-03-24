@@ -105,7 +105,11 @@
   }
 
   .font-pixel {
-    font-family: var(--font-jersey-10), sans-serif;
+    font-family: var(--font-jersey-25), sans-serif;
+  }
+
+  .font-games {
+    font-family: var(--font-courgette), sans-serif;
   }
 
   .font-calm {
@@ -117,7 +121,7 @@
   }
 
   .glass-apple-dark {
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.4);
   }
 
   button, input, select {
@@ -196,7 +200,7 @@
       transparent 100%
     );
     background-size: 200% 200%;
-    animation: shineApple 3s ease-in-out infinite;
+    animation: shineApple 5s alternate infinite;
   }
   
   /* Keyframes para animações Apple */
@@ -216,6 +220,7 @@
   
   @keyframes shineApple {
     0% { background-position: 200% 200%; }
+    50% { background-position: 0% 0%; }
     100% { background-position: -200% -200%; }
   }
   
@@ -305,7 +310,7 @@ h1, h3 {
 }
 
 h2 {
-  font-family: var(--font-jersey-10), sans-serif;
+  font-family: var(--font-jersey-25), sans-serif;
   letter-spacing: 0.05em;
 }
 

@@ -1,8 +1,8 @@
 import { BaseRepository } from "@/lib/mongodb-base-repository";
 import { Filter } from "mongodb";
-import { TrophyTitle } from "../trophies";
+import { GameTitle } from "../trophies";
 
-export class GameRepository<T extends TrophyTitle> extends BaseRepository<T> {
+export class GameRepository<T extends GameTitle> extends BaseRepository<T> {
   constructor() {
     super({ collectionName: 'games' });
   }
@@ -12,13 +12,13 @@ export class GameRepository<T extends TrophyTitle> extends BaseRepository<T> {
     return data;
   }
 
-  async getBackgroundImages(focusGame: TrophyTitle | null) {
+  async getBackgroundImages(focusGame: GameTitle | null) {
     let backgroundImage: string | undefined;
     let heroImage: string | undefined;
     let logoImage: string | undefined;
 
     if (focusGame) {
-      const gameImages = focusGame.gameTitle?.media?.images || focusGame.gameTitle?.concept?.media?.images;
+      const gameImages = focusGame?.media?.images || focusGame?.concept?.media?.images;
 
       if (gameImages) {
         heroImage = gameImages.find((a) => a.type === "HERO_CHARACTER")?.url;
@@ -26,15 +26,15 @@ export class GameRepository<T extends TrophyTitle> extends BaseRepository<T> {
 
         backgroundImage = (
           focusGame.backgroundImage || 
-          gameImages.find(a => a.type === "BACKGROUND_LAYER_ART")?.url || 
-          gameImages.find(a => a.type === "GAMEHUB_COVER_ART")?.url || 
+          gameImages.find(a => a.type === "BACKGROUND")?.url || 
+          gameImages.find(a => a.type === "BACKGROUND_LAYER_ART")?.url ||
           gameImages.find(a => a.type === "FOUR_BY_THREE_BANNER")?.url || 
           gameImages[0]?.url ||
-          focusGame.trophyTitleIconUrl || 
+          focusGame.trophyTitle.trophyTitleIconUrl || 
           '/bg.jpg'
         );
       } else {
-          backgroundImage = focusGame.backgroundImage || focusGame.trophyTitleIconUrl || '/bg.jpg';
+          backgroundImage = focusGame.backgroundImage || focusGame.trophyTitle.trophyTitleIconUrl || '/bg.jpg';
           logoImage = focusGame.logoImage || undefined;
           heroImage = focusGame.heroImage || undefined;
       }

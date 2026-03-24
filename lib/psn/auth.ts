@@ -8,8 +8,10 @@ interface Token {
   refresh_token: string;
   expires_in: number;
   id_token: string;
+  lastUpdated: Date;
   refresh_token_expires_in: number;
   scope: string;
+  authCode: string;
   token_type: string;
 }
 
@@ -31,13 +33,13 @@ export class PSNAuth {
     this.cache = new CacheService(this.npsso, 'tokens');
   }
 
-  private getExpired(expiresIn: number): boolean {
-    if (this.token) {
+  private getExpired(token: Token): boolean {
+    if (token) {
       const expirationDate = new Date(
-        Date.now() + expiresIn * 1000
+        new Date(token.lastUpdated || new Date()).getTime() + token.expires_in * 1000
       ).toISOString();  
 
-      return new Date(expirationDate).getTime() < Date.now();
+      return new Date(expirationDate).getTime() < new Date().getTime();
     }
     return true;
   }
@@ -45,7 +47,7 @@ export class PSNAuth {
   private accessTokenExpired(): boolean {
     let expired = true;
     if (this.token) {
-      expired = this.getExpired(this.token.expires_in);
+      expired = this.getExpired(this.token);
     }
     return expired;
   }
@@ -53,7 +55,7 @@ export class PSNAuth {
   private refreshTokenExpired(): boolean {
     let expired = true;
     if (this.token) {
-      expired = this.getExpired(this.token.refresh_token_expires_in)
+      expired = this.getExpired(this.token)
     }
     return expired;
   }
@@ -82,17 +84,18 @@ export class PSNAuth {
 
     try {
       // Método IDÊNTICO ao PowerShell - espera o 302 e extrai o code
-      const authCode = await this.getAuthCodePowerShellMethod(this.npsso);
+      const authCode =  await this.getAuthCodePowerShellMethod(this.npsso);
 
       const tokenData = await this.exchangeCodeForToken(authCode);
       this.token = tokenData;
+      this.token.authCode = authCode;
 
-      new CacheService(this.npsso, 'tokens').setItem(tokenData);
+      new CacheService(this.npsso, 'tokens').setItem(this.token);
 
       return this.token;
     } catch (error) {
       console.error('❌ Erro na autenticação:', error);
-      throw error;
+      return this.token;
     }
   }
 
@@ -138,6 +141,9 @@ export class PSNAuth {
         if (!code) {
           throw new Error(`Code não encontrado na URL de redirecionamento: ${location}`);
         }
+
+        this.token.authCode = code;
+        await this.cache.setItem<Token | null>(this.token);
 
         return code;
       }
@@ -207,9 +213,9 @@ export class PSNAuth {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Erro no refreshToken:', errorText);
-      throw new Error(`Falha no refreshToken: ${response.status} - ${errorText}`);
+      const errorText = await response.json();
+      console.error('❌ Erro no refreshToken: code: {0}, error: {1}', errorText.error_code, errorText.error_description);
+      throw new Error(`Falha no refreshToken: ${response.status} - ${errorText.error_description || errorText.error}`);
     }
 
     const tokenData = await response.json();

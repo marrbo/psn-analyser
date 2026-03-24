@@ -6,7 +6,7 @@ const nextConfig = {
   },
   output: 'standalone',
   images: {
-    domains: ['image.api.playstation.com', 'assets.nintendo.com', 'cdn.cloudflare.steamstatic.com'],
+    remotePatterns: ['image.api.playstation.com', 'assets.nintendo.com', 'cdn.cloudflare.steamstatic.com'],
     unoptimized: true, // Para Vercel
   },
   env: {

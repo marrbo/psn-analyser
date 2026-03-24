@@ -1,3 +1,4 @@
+import { UserProfile } from '@/types/psn';
 import { PSNAuth } from './auth';
 import { UserRepository } from '@/types/repository/user-repository';
 
@@ -15,15 +16,10 @@ export class PSNUserService {
       const userCache = await this.userRepository.findOne({ onlineId: username });
 
       if (userCache) {
-        if (!userCache._cacheId) {
-          userCache._cacheId = userCache._cacheId ?? userCache.accountId;
-          await this.userRepository.updateById(userCache._id, userCache);  
-        }
-
         const userPresence = await this.getUserPresence(userCache?.accountId);
 
-        if (userPresence && userPresence.currentOnlineId) {
-          userCache.userPresence = userPresence.basicPresence;
+        if (userPresence && userPresence.primaryPlatformInfo) {
+          userCache.userPresence = userPresence;
           await this.userRepository.updateById(userCache._id, userCache);
         }
         
@@ -58,13 +54,11 @@ export class PSNUserService {
         return null;
       }
     } catch (error) {
-      console.error('💥 Erro ao converter username:', error);
-
-      return null;
+      throw new Error(`💥 Erro ao converter username: ${error}`);
     }
   }
 
-  async getUserPresence(accountId: number | string): Promise<any | null> {
+  async getUserPresence(accountId: number | string): Promise<UserProfile | null> {
     if (!accountId) {
       return null;
     }
@@ -81,11 +75,16 @@ export class PSNUserService {
         }
       );
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
       const data = await response.json();
+
+      if (!response.ok) {
+        if (data.error?.code === 2281486) {
+          return { availabilityInfo: { availability: 'hidden' }, primaryPlatformInfo: { onlineStatus: 'offline', platform: 'ps4', lastOnlineDate: new Date().toISOString() }, gameTitleInfoList: { gameTitleInfoList: [] } } as UserProfile;
+          // return { error: { reason: 'HiddenGamelist' }, onlineStatus: 'offline', platform: 'ps4', lastOnlineDate: new Date() } as UserPresence;
+        }
+        return { availabilityInfo: { availability: 'offline' }, primaryPlatformInfo: { onlineStatus: 'offline', platform: 'ps4', lastOnlineDate: new Date().toISOString() }, gameTitleInfoList: { gameTitleInfoList: [] } } as UserProfile;
+        // return { error: { reason: response.statusText }, onlineStatus: 'offline', platform: 'ps4', lastOnlineDate: new Date() } as UserPresence;;
+      }
 
       return data.basicPresence;
 

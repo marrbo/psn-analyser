@@ -25,7 +25,7 @@ export default class PSNTrophyService {
 
   constructor() {
     this.auth = new PSNAuth();
-    this.cache = new Map<string, CacheItem<any>>();
+    this.cache = new Map<string, CacheItem<object>>();
     this.cacheTTL = 5 * 60 * 1000;
   }
 
@@ -56,7 +56,8 @@ export default class PSNTrophyService {
     resultAnalysis.renewAt = resultAnalysis.renewAt ? resultAnalysis.renewAt : new Date(new Date().getTime() + this.cacheTTL);
 
     if (resultAnalysis && resultAnalysis?.renewAt <= new Date()) {
-      const psnUser = await userRepository.findByLastAnalysisId(analysisId);
+      const _analysisId = resultAnalysis._id?.toJSON() || analysisId;
+      const psnUser = await userRepository.findByLastAnalysisId(_analysisId);
 
       if (psnUser) {
         // const accountId = psnUser.accountId.toString();
@@ -78,8 +79,8 @@ export default class PSNTrophyService {
       if (resultAnalysis.psnUser) {
         const presence = await UserService.getUserPresence(resultAnalysis?.psnUser.accountId);
 
-        if (presence?.basicPresence) {
-          resultAnalysis.psnUser.userPresence = presence?.basicPresence.primaryPlatformInfo;
+        if (presence) {
+          resultAnalysis.psnUser.userPresence = presence;
           if (resultAnalysis.psnUser._id) {
             const _id: ObjectId = resultAnalysis.psnUser._id;
             await userRepository.updateById(_id,
@@ -129,9 +130,11 @@ export default class PSNTrophyService {
 
       if (resultAnalysis) {
         trophySummary.renewAt = resultAnalysis.renewAt;
-        const gameIndex = resultAnalysis.games.findIndex((game: TrophyTitle) => {
-          return game.npCommunicationId === npCommunicationId;
-        });
+        const gameIndex = resultAnalysis.games.findIndex(game => game.trophyTitle?.npCommunicationId === npCommunicationId);
+
+        if (gameIndex === -1) {
+          throw new Error('Jogo não encontrado');
+        }
 
         let gameUpdated = await this.getGameTrophyList(accountId, token, resultAnalysis.games[gameIndex]);
         gameUpdated = await this.transformGameData(gameUpdated, accountId);
@@ -169,60 +172,52 @@ export default class PSNTrophyService {
       this.GOTY_GAMES_DATABASE = await this.getGOTYGames();
       const trophySummary = await this.getTrophySummary(accountId, token);
 
-      const allTitles = await this.getUserTitlesWithPaginationOld(accountId, token);
+      // const allTitles = await this.getUserTitlesWithPaginationOld(accountId, token);
 
-      let allTitlesPurchased = await this.getUserTitlesWithPagination(accountId, token);
-
-      allTitlesPurchased = Array.from(new Set(allTitlesPurchased.map(item => (item["playCount"] || 0) > 0 ? item : null))).filter(item => item !== null);
-      allTitlesPurchased.forEach((game: GameTitle) => {
-        game.name = game.name
-            .replace(/ Trophies/g,'')
-            .replace(/Troféus do /g,'')
-            .replace(/ PS4™ e PS5™/g,'')
-            .replace(/ Trophy Set/g,'');
-      });
+      const allTitlesPurchased = await this.getUserTitlesWithPagination(accountId, token);
 
       // Usado uma vez para fazer scraper da página do Metacritic
       // const metacritcScraper = new MetacriticScraper();
       // await metacritcScraper.scrapeMultiplePages(300);
 
-      allTitles.forEach((game: TrophyTitle) => {
-        const name = normalizeText(game.trophyTitleName);
+      // allTitles.forEach((game: TrophyTitle) => {
+      //   const name = normalizeText(game.trophyTitleName);
 
-        let titleFinded = undefined;
-        const filtered = allTitlesPurchased
-          .filter((t: GameTitle) => t.category.toLocaleUpperCase().includes(game.trophyTitlePlatform))
+      //   let titleFinded = undefined;
+      //   const filtered = allTitlesPurchased
+      //     .filter((t: GameTitle) => t.category.toLocaleUpperCase().includes(game.trophyTitlePlatform))
         
-        titleFinded = filtered.find((t: GameTitle) => {
-          if (this.normalizeText(t.name) === name ||
-            this.normalizeText(t.sortableName) === name ||
-            this.normalizeText(t.localizedName) === name ||
-            this.normalizeText(t.concept?.localizedName.metadata["en-US"]) === name) {
-              return t;
-            }
-        });
+      //   titleFinded = filtered.find((t: GameTitle) => {
+      //     if (this.normalizeText(t.name) === name ||
+      //       this.normalizeText(t.sortableName) === name ||
+      //       this.normalizeText(t.localizedName) === name ||
+      //       this.normalizeText(t.concept?.localizedName.metadata["en-US"]) === name) {
+      //         return t;
+      //       }
+      //   });
 
-        if (!titleFinded) {
-          titleFinded = filtered.find((t: GameTitle) => {
-            if (name.includes(this.normalizeText(t.name)) || 
-              t.name.includes(this.normalizeText(name))){
-                return t;
-              }
-          });
-        }
+      //   if (!titleFinded) {
+      //     titleFinded = filtered.find((t: GameTitle) => {
+      //       if (name.includes(this.normalizeText(t.name)) || 
+      //         t.name.includes(this.normalizeText(name))){
+      //           return t;
+      //         }
+      //     });
+      //   }
 
-        if (titleFinded) {
-          game.gameTitle = titleFinded;
-        } 
-      });
+      //   if (titleFinded) {
+      //     game.gameTitle = titleFinded;
+      //   } 
+      // });
 
-      const games: TrophyTitle[] = await this.processGamesInBatches(allTitles, accountId, token);
+      let allGames: GameTitle[] = await this.processGamesInBatches(allTitlesPurchased, accountId, token);
+      allGames = allGames.filter(game => game.trophyTitle && game?.trophyTitle?.definedTrophies && Object.values(game?.trophyTitle?.definedTrophies).reduce((a, b) => a + b, 0) > 0);
 
-      const batchPromises = games.map((game) => {
+      const batchPromises = allGames.map((game) => {
         return this.transformGameData(game, accountId);
       });
 
-      const allGames = await Promise.all(batchPromises);
+      allGames = await Promise.all(batchPromises);
 
       // Calcular estatísticas GOTY
       const gotyStats = await this.getGotyStats(allGames);
@@ -240,7 +235,7 @@ export default class PSNTrophyService {
 
       await new CacheService(accountId, 'users').setItem(psnUser);
 
-      resultAnalysis.games.sort((a: TrophyTitle, b: TrophyTitle) => new Date(b.gameTitle?.lastPlayedDateTime || b.lastUpdatedDateTime).getTime() - new Date(a.gameTitle?.lastPlayedDateTime || a.lastUpdatedDateTime).getTime());
+      resultAnalysis.games.sort((a: GameTitle, b: GameTitle) => new Date(b.lastPlayedDateTime || b.lastUpdatedDateTime).getTime() - new Date(a.lastPlayedDateTime || a.lastUpdatedDateTime).getTime());
 
       const dadosProcessados: AnalysisData = {
         _cacheId: accountId,
@@ -366,7 +361,7 @@ export default class PSNTrophyService {
   }
 
 
-  private async getGameTrophyListFromTitleId(accountId: string, token: string, titleId: string): Promise<TrophyGroup[]| undefined> {
+  private async getGameTrophyListFromTitleId(accountId: string, token: string, titleId: string): Promise<TrophyTitle| undefined> {
     const url = `https://m.np.playstation.com/api/trophy/v1/users/${accountId}/titles/trophyTitles?` +
         new URLSearchParams({
           'npTitleIds': titleId,
@@ -389,19 +384,23 @@ export default class PSNTrophyService {
       const data = await response.json();
 
       if (data.titles) {
-        return data.titles;
+        const trophyTitle: TrophyTitle = data.titles[0].trophyTitles[0];
+        trophyTitle.npTitleId = data.titles[0].npTitleId;
+        trophyTitle.titleId = trophyTitle.npTitleId;
+
+        return trophyTitle;
       }
 
       return undefined;
+  }
 
-  } 
-  private async getGameTrophyList(accountId: string, token: string, game: TrophyTitle): Promise<TrophyTitle> {
+  private async getGameTrophyList(accountId: string, token: string, game: GameTitle): Promise<GameTitle> {
     
-    if (game.gameTitle && game.gameTitle?.titleId) {
-      const trophyGroups = await this.getGameTrophyListFromTitleId(accountId, token, game.gameTitle.titleId);
+    if (game.titleId) {
+      const title = await this.getGameTrophyListFromTitleId(accountId, token, game.titleId);
 
-      if (trophyGroups) {
-        game.trophyGroups = trophyGroups;
+      if (title) {
+        game.trophyTitle = title;
       }
     }
 
@@ -456,16 +455,15 @@ export default class PSNTrophyService {
   }
 
   private async processGamesInBatches(
-    titles: TrophyTitle[],
+    games: GameTitle[],
     accountId: string,
     token: string
-  ): Promise<TrophyTitle[]> {
+  ): Promise<GameTitle[]> {
     
     const batchSize = 100;
-    const games: TrophyTitle[] = [];
 
-    for (let i = 0; i < titles.length; i += batchSize) {
-      const batch = titles.slice(i, i + batchSize);
+    for (let i = 0; i < games.length; i += batchSize) {
+      const batch = games.slice(i, i + batchSize);
       
       const batchPromises = batch.map((title) => {
         return this.getGameTrophyList(accountId, token, title);
@@ -475,13 +473,13 @@ export default class PSNTrophyService {
 
       batchResults.forEach((result, index) => {
         if (result.status === 'fulfilled') {
-          games.push(result.value);
+          console.log(`${result.value.localizedName} processado com sucesso.`);
         } else {
-          console.warn(`⚠️  Erro ao processar jogo ${batch[index].gameTitle.localizedName}:`, result.reason);
+          console.warn(`⚠️  Erro ao processar jogo ${batch[index].localizedName}:`, result.reason);
         }
       });
 
-      if (i + batchSize < titles.length) {
+      if (i + batchSize < games.length) {
         await new Promise(resolve => setTimeout(resolve, 200));
       }
     }
@@ -489,43 +487,44 @@ export default class PSNTrophyService {
     return games;
   }
 
-  private async transformGameData(game: TrophyTitle, accountId: string): Promise<TrophyTitle> {
+  private async transformGameData(game: GameTitle, accountId: string): Promise<GameTitle> {
     try {
-      const completionRate = game.progress;
+      const completionRate = game.trophyTitle.progress || 0;
 
-      const totalTrophies = Object.values(game.definedTrophies).reduce((a, b) => a + b, 0);
-      const earnedTrophies = Object.values(game.earnedTrophies).reduce((a, b) => a + b, 0);
+      const totalTrophies = Object.values(game?.trophyTitle.definedTrophies).reduce((a, b) => a + b, 0);
+      const earnedTrophies = Object.values(game?.trophyTitle.earnedTrophies).reduce((a, b) => a + b, 0);
 
       const rarity = this.calculateRarity(completionRate, earnedTrophies);
       const difficulty = this.calculateDifficulty(completionRate, rarity);
 
-      const gameNameTitle: string = (game?.gameTitle?.localizedName || game.trophyTitleName);
+      const gameNameTitle: string = (game?.concept?.localizedName.metadata["en-US"]) as string;
 
       // Usar a nova função isGotyGame
       const gotyMatch = this.isGotyGame(gameNameTitle);
 
-      const metacriticGame = await metacriticScraper.getMetacritcGame(gameNameTitle, game.npCommunicationId);
+      const metacriticGame = await metacriticScraper.getMetacritcGame(gameNameTitle, game.trophyTitle.npCommunicationId);
 
       // pega todos ps grupos de Troféus (DLCs)
-      const trophyGroups = await this.getGameTrophyGroups(game.npCommunicationId, game.npServiceName);
+      const trophyGroups = await this.getGameTrophyGroups(game.trophyTitle.npCommunicationId, game.trophyTitle.npServiceName);
 
       game.trophyGroups = trophyGroups;
-      game.metacritc = metacriticGame;
-      game.isGoty = gotyMatch.isGoty;
-      game.gotyData = gotyMatch.gameData || null;
+      game.completionPercentage = completionRate;
+      game.trophyTitle.metacritic = metacriticGame;
+      game.trophyTitle.isGoty = gotyMatch.isGoty;
+      game.trophyTitle.gotyData = gotyMatch.gameData || null;
 
       for (const group of game.trophyGroups) {
         const userTrophies: TrophyDetail[] = await this.getUserGroupTrophiesForGame(
           accountId,
-          game.npCommunicationId,
+          game.trophyTitle?.npCommunicationId,
           group.trophyGroupId,
-          game.npServiceName
+          game.trophyTitle?.npServiceName
         );
 
         const gameTrophies: TrophyDetail[] = await this.getGroupTrophiesForGame(
-          game.npCommunicationId,
+          game.trophyTitle?.npCommunicationId,
           group.trophyGroupId,
-          game.npServiceName
+          game.trophyTitle?.npServiceName
         );
 
         group.trophies = gameTrophies;
@@ -546,6 +545,13 @@ export default class PSNTrophyService {
           }
         });
 
+        group.definedTrophies = {
+          bronze: group.trophies.filter(trophy => trophy.trophyType === 'bronze').length,
+          silver: group.trophies.filter(trophy => trophy.trophyType === 'silver').length,
+          gold: group.trophies.filter(trophy => trophy.trophyType === 'gold').length,
+          platinum: group.trophies.filter(trophy => trophy.trophyType === 'platinum').length
+        }
+
         group.earnedTrophies = {
           bronze: group.trophies.filter(trophy => trophy.earned && trophy.trophyType === 'bronze').length,
           silver: group.trophies.filter(trophy => trophy.earned && trophy.trophyType === 'silver').length,
@@ -554,67 +560,63 @@ export default class PSNTrophyService {
         }
 
         group.progress = (group.trophyGroupId === 'default' && game.trophyGroups.length <= 1) 
-          ? game.progress 
+          ? game.trophyTitle.progress 
           : this.calculateGroupProgress(group.trophies);
       }
 
-      if (game.gameTitle !== null && game.gameTitle !== undefined) {
-        game.gameTitle.platform = game.trophyTitlePlatform || this.getPlatform(game?.gameTitle?.category);
-
-        const hasPlatinum = game.earnedTrophies.platinum > 0 || game.gameTitle?.hasPlatinum || game.progress === 100 || false;
-        const estimatedTimeToPlatinum = this.estimateTimeToPlatinum(totalTrophies);
-        const hoursPlayed = toDecimalHours(game.gameTitle.playDuration);
-        const platinumTime = estimatedTimeToPlatinum > hoursPlayed ? hoursPlayed : estimatedTimeToPlatinum;
-        
-        game.gameTitle.timeToPlatinum = platinumTime;
-        game.gameTitle.estimatedTimeToPlatinum = estimatedTimeToPlatinum;
-        game.gameTitle.metacriticScore = metacriticGame?.metascore || 0;
-        game.gameTitle.difficulty = difficulty;
-        game.gameTitle.rarity = rarity;
-        game.gameTitle.hasPlatinum = hasPlatinum;
-        game.gameTitle.completionPercentage = completionRate;
-        game.gameTitle.isRare = rarity < 20;
-        game.gameTitle.isHighDifficulty = difficulty >= 7;
-        game.gameTitle.totalTrophies = totalTrophies;
-        game.gameTitle.trophyCount = totalTrophies;
-        game.gameTitle.npCommunicationId = game.npCommunicationId;
-        game.gameTitle.earnedTrophies = game.earnedTrophies;
-      }
-
+      
+      game.platform = game.trophyTitle?.trophyTitlePlatform || this.getPlatform(game?.category);
+      const hasPlatinum = (game.trophyTitle?.earnedTrophies?.platinum || 0) > 0 || game.hasPlatinum || game.trophyTitle.progress === 100 || false;
+      const estimatedTimeToPlatinum = this.estimateTimeToPlatinum(totalTrophies);
+      const hoursPlayed = toDecimalHours(game.playDuration);
+      const platinumTime = estimatedTimeToPlatinum > hoursPlayed ? hoursPlayed : estimatedTimeToPlatinum;
+      
+      game.timeToPlatinum = platinumTime;
+      game.estimatedTimeToPlatinum = estimatedTimeToPlatinum;
+      game.metacriticScore = metacriticGame?.metascore || 0;
+      game.difficulty = difficulty;
+      game.rarity = rarity;
+      game.hasPlatinum = hasPlatinum;
+      game.completionPercentage = completionRate;
+      game.isRare = rarity < 20;
+      game.isHighDifficulty = difficulty >= 7;
+      game.totalTrophies = totalTrophies;
+      game.trophyCount = totalTrophies;
+      game.npCommunicationId = game.trophyTitle?.npCommunicationId;
+      game.earnedTrophies = game.trophyTitle?.earnedTrophies;
+      
       const gameSaved = await this.saveGameToRepository({ ...game });
 
-      game.trophyTitleIconUrl = gameSaved.trophyTitleIconUrl;
-      game.trophyTitleName = gameSaved.trophyTitleName;
+      game.trophyTitle.trophyTitleIconUrl = gameSaved.trophyTitle.trophyTitleIconUrl;
+      game.trophyTitle.trophyTitleName = gameSaved.trophyTitle.trophyTitleName;
+
       game.backgroundImage = gameSaved.backgroundImage;
       game.heroImage = gameSaved.heroImage;
       game.logoImage = gameSaved.logoImage;
 
     } catch (error) {
-      console.error(`⚠️ [transformGameData] Erro ao processar jogo ${game.trophyTitleName}:`, error);
+      console.error(`⚠️ [transformGameData] Erro ao processar jogo ${game.name}:`, error);
       return game;
     }
 
     return game;
   }
-  async saveGameToRepository(game: TrophyTitle) {
+  async saveGameToRepository(game: GameTitle) {
 
     const stringify = JSON.stringify(game);
-    const gameData: TrophyTitle = JSON.parse(stringify);
+    const gameData: GameTitle = JSON.parse(stringify);
 
     // removendo características dinâmicas antes de salvar
-    if (gameData.gameTitle) {
-      gameData.gameTitle.earnedTrophies = { bronze: 0, silver: 0, gold: 0, platinum: 0 };
-      gameData.gameTitle.hasPlatinum = false;
-      gameData.gameTitle.completionPercentage = 0;
-      gameData.gameTitle.timeToPlatinum = 0;
-      gameData.gameTitle.firstPlayedDateTime = '';
-      gameData.gameTitle.lastPlayedDateTime = '';
-      gameData.gameTitle.playDuration = '';
-    }
+    gameData.earnedTrophies = { bronze: 0, silver: 0, gold: 0, platinum: 0 };
+    gameData.hasPlatinum = false;
+    gameData.completionPercentage = 0;
+    gameData.timeToPlatinum = 0;
+    gameData.firstPlayedDateTime = '';
+    gameData.lastPlayedDateTime = '';
+    gameData.playDuration = '';
 
     gameData.earnedTrophies = { bronze: 0, silver: 0, gold: 0, platinum: 0 };
-    gameData.progress = 0;
-    
+    gameData.completionPercentage = 0;
 
     for (const trophyGroup of gameData.trophyGroups) {
       trophyGroup.trophies.forEach((trophy: TrophyDetail) => {
@@ -640,8 +642,8 @@ export default class PSNTrophyService {
 
       const bgImage = await gameRepository.getBackgroundImages(existingGame)
 
-      gameData.trophyTitleName = existingGame?.trophyTitleName;
-      gameData.trophyTitleIconUrl = existingGame?.trophyTitleIconUrl;
+      gameData.trophyTitle.trophyTitleName = existingGame?.trophyTitle.trophyTitleName;
+      gameData.trophyTitle.trophyTitleIconUrl = existingGame?.trophyTitle.trophyTitleIconUrl;
       gameData.backgroundImage = bgImage.backgroundImage || images.backgroundImage;
       gameData.heroImage = bgImage.heroImage || images.heroImage;
       gameData.logoImage = bgImage.logoImage || images.logoImage;
@@ -772,19 +774,20 @@ export default class PSNTrophyService {
     return data.trophies || [];
   }
 
-  private async generateAnalysis(trophySummary: TrophySummary, games: TrophyTitle[], gotyStats: GotyStats) {
+  private async generateAnalysis(trophySummary: TrophySummary, games: GameTitle[], gotyStats: GotyStats) {
     // Garantir que games seja um array
     const safeGames = Array.isArray(games) ? games : [];
 
-    const completedGames = safeGames.filter(game => game.progress === 100).length;
+    const completedGames = safeGames.filter(game => game?.trophyTitle?.progress === 100).length;
     const platinumGames = trophySummary.earnedTrophies.platinum;
-    const platinumFromList = safeGames.filter(game => game.earnedTrophies.platinum === 1).length;
-    const platinumGames100 = safeGames.filter(game => game.gameTitle?.hasPlatinum && game.progress === 100).length;
+    const platinumFromListItems = safeGames.filter(game => game?.trophyTitle?.earnedTrophies?.platinum === 1);
+    const platinumFromList = platinumFromListItems.length;
+    const platinumGames100 = platinumFromListItems.filter(game => game?.trophyTitle?.progress === 100).length;
     const platinasOcultas = (platinumGames - platinumFromList) < 0 ? 0 : (platinumGames - platinumFromList);
-    const highDifficultyGames = safeGames.filter(game => game.progress === 100 && game.gameTitle?.difficulty || 0 >= 8).length;
-    const highMetacriticScoreGames = safeGames.filter(game => game.gameTitle?.metacriticScore >= 80).length;
+    const highDifficultyGames = safeGames.filter(game => game?.trophyTitle?.progress === 100 && game?.difficulty || 0 >= 8).length;
+    const highMetacriticScoreGames = safeGames.filter(game => game?.metacriticScore >= 80).length;
 
-    const trophyGroups = safeGames.flatMap(game => game.trophyGroups || []);
+    const trophyGroups = safeGames.flatMap(game => game.trophyTitle.trophyGroups || []);
     const platinumTrophies = trophyGroups.flatMap(group => group.trophies.filter(trophy => trophy.earned && trophy.trophyType === 'platinum'));
 
     const platinumGroupScore = platinumTrophies.reduce((acc, trophy) => {
@@ -840,7 +843,6 @@ export default class PSNTrophyService {
     const {
       platinumCount,
       platinumCount100,
-      platinumGroupScore,
       platinumData,
       completionRate,
       completedGames,
@@ -1101,14 +1103,14 @@ export default class PSNTrophyService {
     };
   }
 
-  public async getGotyStats(games: TrophyTitle[]): Promise<GotyStats> {
+  public async getGotyStats(games: GameTitle[]): Promise<GotyStats> {
     const gotyGames: Array<GOTYGame & { userGame: any }> = [];
     const byYear: { [year: number]: number } = {};
     let totalGotyGames = 0;
     let completionRate = 0;
 
     for (const game of games) {
-      const match = this.isGotyGame(game.trophyTitleName);
+      const match = this.isGotyGame(game.name);
       if (match.gameData) {
         // Verificar se o jogo já foi adicionado (evitar duplicatas)
         const gameAlreadyAdded = gotyGames.some(gotyGame =>
@@ -1185,7 +1187,7 @@ export default class PSNTrophyService {
     const token = await this.auth.getAccessToken();
     const extraParams = `?npServiceName=${npServiceName}`;
 
-    const response = await fetch(
+    let response = await fetch(
       `https://m.np.playstation.com/api/trophy/v1/npCommunicationIds/${npCommunicationId}/trophyGroups${extraParams}`,
       {
         headers: {
@@ -1197,10 +1199,43 @@ export default class PSNTrophyService {
     );
 
     if (!response.ok) {
+      console.error(`❌ Tentando buscar com npServiceName: trophy2`);
+      response = await fetch(
+        `https://m.np.playstation.com/api/trophy/v1/npCommunicationIds/${npCommunicationId}/trophyGroups?npServiceName=trophy2`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept-Language': 'pt-BR',
+          }
+        }
+      );
+
+      if (response.ok) {
+        npServiceName = 'trophy2';
+      }
+    }
+
+    if (!response.ok) {
       throw new Error(`Erro ao buscar grupos de troféus: ${response.status}`);
     }
 
     const data = await response.json();
+
+    // trophy details
+    await Promise.all(data.trophyGroups.map(async (group: TrophyGroup) => {
+      group.trophies = await this.getGroupTrophiesForGame(npCommunicationId, group.trophyGroupId, npServiceName);
+    }));
+
+    const game = await gameRepository.findByNpCommunicationId(npCommunicationId);
+
+    if (game) {
+      await gameRepository.updateById(game._id, {
+          trophyGroups: data.trophyGroups
+        });
+    } else {
+      await gameRepository.create({...data} as GameTitle);
+    }
 
     await new Promise(resolve => setTimeout(resolve, 200));
 

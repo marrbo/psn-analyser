@@ -8,7 +8,7 @@ import ProgressRing from "@/app/components/ui/ProgressRing";
 import TrophyFilters, { TrophyFiltersState } from "@/app/components/TrophyFilters";
 import Image from "next/image";
 import { getPlatform, useHeader } from "@/providers/HeaderContext";
-import { TrophyDetail, TrophyGroup, TrophyTitle } from "@/types/trophies";
+import { TrophyDetail, TrophyGroup } from "@/types/trophies";
 import LoadingSpinner from "@/app/components/ui/LoadingSpinner";
 import { FaAdjust, FaAward, FaCalendar, FaEye, FaEyeSlash, FaLock, FaLockOpen } from "react-icons/fa";
 
@@ -82,37 +82,51 @@ function GameDetailPageContent() {
         setAnalysisData(data);
         setFocusGame(data.games[0]);
         
-        if (data.games[0].backgroundImage) {
-          setBackgroundImage(data.games[0].backgroundImage);
-        }
+        // if (!data.games[0].backgroundImage) {
+        //   const backgroundImage =
+        //     game?.localizedImageUrl ||
+        //     game?.concept?.media.images.find(
+        //       (a) => a.type === "GAMEHUB_COVER_ART",
+        //     )?.url ||
+        //     game?.concept?.media.images.find(
+        //       (a) => a.type === "BACKGROUND_LAYER_ART",
+        //     )?.url ||
+        //     game?.concept?.media.images[1]?.url ||
+        //     game?.trophyTitle.trophyTitleIconUrl ||
+        //     "/default-game-cover.webp";
+          
+        //   data.games[0].backgroundImage = backgroundImage;
+        // }
 
-        if (data.games[0].logoImage) {
-          setLogoImage(data.games[0].logoImage);
-        } else {
-          setLogoImage(null);
-        }
+        // setBackgroundImage(data.games[0].backgroundImage);
 
-        if (data.games[0].heroImage) {
-          setHeroImage(data.games[0].heroImage);
-        } else {
-          setHeroImage(null);
-        }
+        // if (data.games[0].logoImage) {
+        //   setLogoImage(data.games[0].logoImage);
+        // } else {
+        //   setLogoImage(null);
+        // }
 
-        setTitle(`Detalhes do Jogo: ${data.games[0].trophyTitleName}`);
+        // if (data.games[0].heroImage) {
+        //   setHeroImage(data.games[0].heroImage);
+        // } else {
+        //   setHeroImage(null);
+        // }
+
+        setTitle(`Detalhes do Jogo: ${data.games[0].localizedName}`);
         setPsnUser(data.psnUser);
         setTrophyData(data.trophySummary);
         setTotalEarned(
-          data.games[0].earnedTrophies.bronze +
-            data.games[0].earnedTrophies.silver +
-            data.games[0].earnedTrophies.gold +
-            data.games[0].earnedTrophies.platinum
+          data.games[0].trophyTitle.earnedTrophies.bronze +
+            data.games[0].trophyTitle.earnedTrophies.silver +
+            data.games[0].trophyTitle.earnedTrophies.gold +
+            data.games[0].trophyTitle.earnedTrophies.platinum
         );
 
         setTotalDefined(
-          data.games[0].definedTrophies.bronze +
-            data.games[0].definedTrophies.silver +
-            data.games[0].definedTrophies.gold +
-            data.games[0].definedTrophies.platinum
+          data.games[0].trophyTitle.definedTrophies.bronze +
+            data.games[0].trophyTitle.definedTrophies.silver +
+            data.games[0].trophyTitle.definedTrophies.gold +
+            data.games[0].trophyTitle.definedTrophies.platinum
         );
       } catch (error) {
         console.error("Erro ao carregar detalhes do jogo:", error);
@@ -224,7 +238,7 @@ function GameDetailPageContent() {
           filteredTrophies = filteredTrophies.filter((trophy: TrophyDetail) => {
             
             const isEarned = trophy.earned;
-            const isProgress = (trophy.progress || 0) > 0;
+            const isProgress = !trophy.earned &&trophy.progressRate < 100 && Number(trophy.trophyProgressTargetValue || '0') > 0;
             const isHidden = (trophy.trophyHidden && trophy.earned) || (trophy.trophyHidden && !trophy.earned) 
             || (trophy.trophyHidden && isProgress) || (trophy.trophyHidden && !isProgress);
 
@@ -345,19 +359,19 @@ function GameDetailPageContent() {
   }
 
   const coverImage =
-    game?.gameTitle?.concept?.media.images.find((a) => a.type === "MASTER")
+    game?.concept?.media.images.find((a) => a.type === "MASTER")
         ?.url ||  
-    game?.gameTitle?.concept?.media.images.find((a) => a.type === "PORTRAIT_BANNER")
+    game?.concept?.media.images.find((a) => a.type === "PORTRAIT_BANNER")
         ?.url ||
-    game?.gameTitle?.concept?.media.images[1]?.url ||
-    game?.trophyTitleIconUrl ||
+    game?.concept?.media.images[1]?.url ||
+    game?.trophyTitle.trophyTitleIconUrl ||
     "/default-game-cover.webp";
 
-  const platformText = game?.trophyTitlePlatform || game?.gameTitle?.platform || '';
+  const platformText = game?.trophyTitle.trophyTitlePlatform || game?.platform || '';
   const platform = getPlatform(game!)
   
   const title =
-    game?.gameTitle?.localizedName || game?.trophyTitleName || "Capa do jogo";
+    game?.localizedName || "Capa do jogo";
   const classPS3 =
     platformText === "PS3"
       ? "object-cover-custom p-3 bg-linear-to-bl from-black to-gray-500 border border-gray-950"
@@ -381,21 +395,21 @@ function GameDetailPageContent() {
           <div className="text-lg lg:text-3xl font-semibold text-white text-left items-center flex-1 rounded-3xl h-30 lg:h-25">
             <div className="flex w-full items-center justify-between">
               <div className="flex gap-2">
-                <h2 className="text-3xl lg:text-6xl font-semibold text-white">{title.replace('™', '')}</h2>
+                <h2 className="text-3xl lg:text-6xl font-semibold text-white">{title.replace('™', '').replace('TM', '™')}</h2>
                 <span className={`flex min-w-10 max-w-100 h-4.5 border ${platformText.includes("PS5") ? 'bg-white border-black text-black' : 'bg-black/80 border-white/50 text-white'} rounded-lg px-2 text-center`}>
                   {platform}
                 </span>
-                {game?.gotyData && (
+                {game?.trophyTitle.gotyData && (
                   <span
                     className={`flex items-center gap-1 justify-between px-2 h-4.5 py-0.5 rounded-md bg-yellow-500 text-black -skew-x-10 text-xs`}
                   >
-                    <FaAward /> <span>GOTY - {game?.gotyData?.ano_premiacao}</span> 
+                    <FaAward /> <span>GOTY - {game?.trophyTitle.gotyData?.ano_premiacao}</span> 
                   </span>
                 )}
               </div>
             </div>
             <div className="text-sm lg:text-lg text-gray-300 font-thin lg:font-semibold flex gap-3 mt-4 italic drop-shadow-2xs shadow-black text-shadow-2xs">
-              <p>🎮 {showDLCs ? game?.progress?.toFixed(1) : ((totalEarned/totalDefined) * 100).toFixed(1)}%</p>
+              <p>🎮 {showDLCs ? game?.trophyTitle.progress?.toFixed(1) : ((totalEarned/totalDefined) * 100).toFixed(1)}%</p>
               <p>🏆 {totalEarned || 0}/{totalDefined}</p>
               { (game?.trophyGroups.length || 0) > 1 && (
                 <p>📚 {(game?.trophyGroups.length || 0) - 1}
@@ -427,12 +441,7 @@ function GameDetailPageContent() {
             .filter((group: TrophyGroup) => group.trophies.length > 0)
             .map((group: TrophyGroup) => (
               <div key={group.trophyGroupId}>
-                <div className="flex items-center h-12 lg:h-18 justify-between text-sm gap-6 p-0 mb-6 bg-black/60 border border-white/20 rounded-lg" 
-                // style={{backgroundImage: `url(${group.trophyGroupIconUrl})`, backgroundAttachment: 'fixed', backgroundSize: 'cover', 
-                //           backgroundPosition: 'topcenter', backgroundBlendMode: 'overlay', backgroundRepeat: 'no-repeat',
-                //           backgroundColor: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'opacity(0.6) blur(8px)'
-                //           }}
-                >
+                <div className="flex items-center h-12 lg:h-18 justify-between text-sm gap-6 p-0 mb-6 glass-apple-dark rounded-lg">
                           
                   <div className="flex items-center" >
                     <Image
@@ -448,8 +457,8 @@ function GameDetailPageContent() {
                   </div>
                   <div className="flex justify-between items-center gap-5 text-gray-400">
                     <div className="hidden lg:block">
-                      <TrophyMeter hideLevel={true} data={group} hidePlatinum={true} 
-                        hideTotal={true} showEarned={true} size="xl" space="15"/>
+                      <TrophyMeter hideLevel={true} data={group} hidePlatinum={group.definedTrophies?.platinum === 0 ? true : false} 
+                        hideTotal={false} showEarned={true} size="xl" space="15"/>
                     </div>
                     <div className="block lg:hidden">
                       <TrophyMeter hideLevel={true} data={group} hidePlatinum={true} 
@@ -475,7 +484,7 @@ function GameDetailPageContent() {
                       className={`transition-all duration-300 rounded-lg
                       ${trophy.earned ? `${tophyGradient(trophy.trophyType)}` : "grayscale-20"} 
                     `}>
-                      <div className={`flex gap-2 glass-apple`}>
+                      <div className={`flex gap-2 glass-apple-dark`}>
                         <div className={`min-w-25 min-h-25 w-25 h-25 p-0 rounded-l-lg bg-transparent aspect-square`}>
                           
                           <div className="flex">
@@ -499,9 +508,8 @@ function GameDetailPageContent() {
                           
 
                           <div 
-                            className={trophy.progressRate > 0 ? `absolute rounded-l-sm top-0 
-                              ${'w-'+((trophy.progressRate / 100) * 25).toFixed(0)} mb-0 h-25 border-r-4 border-green-500/60` : 'hidden' } >
-                            <span className="relative p-2 text-lg font-bold text-white drop-shadow-2xs shadow-black text-shadow-2xs">{trophy.progressRate}%</span>
+                            className={(Number(trophy.trophyProgressTargetValue) > 0) ? 'absolute w-25 h-25 top-0' : 'hidden' } >
+                            <p className="w-25 h-25 text-3xl font-bold drop-shadow-2xs shadow-black text-shadow-2xs flex items-center justify-center">{trophy.progressRate || 0}%</p>
                           </div>
                         </div>
 
@@ -528,12 +536,12 @@ function GameDetailPageContent() {
                             {!trophy.earnedDateTime && (
                               <span className="text-green-400 text-xs -mt-3"></span>
                             )}
-                            {(trophy.progressRate && (
+                            {(trophy.trophyProgressTargetValue != undefined && (
                               <span
                                 className="text-gray-400 text-xs text-left"
                                 title="progresso da conquista"
                               >
-                                <FaAdjust className="inline mr-1 -mt-1" />{trophy.progress} / {trophy.trophyProgressTargetValue}
+                                <FaAdjust className="inline mr-1 -mt-1" />{trophy.progress || 0} / {trophy.trophyProgressTargetValue}
                               </span>
                             )) || <span className="text-gray-400 text-xs"></span>}
                           </p>

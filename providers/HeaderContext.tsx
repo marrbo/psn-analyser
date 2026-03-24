@@ -2,7 +2,7 @@
 
 import { SiPlaystation2, SiPlaystation3, SiPlaystation4, SiPlaystation5, SiPlaystationvita } from "react-icons/si";
 import { PSNUser } from '@/types/psn';
-import { TrophySummary, TrophyTitle } from '@/types/trophies';
+import { GameTitle, TrophySummary, TrophyTitle } from '@/types/trophies';
 import { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 import { AnalysisData } from "@/lib/mongodb";
 
@@ -12,14 +12,14 @@ interface HeaderContextType {
   title: string;
   setTitle: (title: string) => void;
   psnUser: PSNUser | null;
-  setPsnUser: (psnUser: PSNUser | undefined) => void;
+  setPsnUser: (psnUser: PSNUser | null | undefined) => void;    
   texto: string;
   setTexto: (texto: string) => void;
   trophyData: TrophySummary | null;
   setTrophyData: (trophyData: TrophySummary | null) => void;
   onClick?: () => void;
   navigateRoute?: string;
-  setNavigateRoute?: (route: string) => void;
+  setNavigateRoute: (route: string | undefined) => void;
   setOnClick: (onClick: () => void) => void;
   
   isMobile: boolean;
@@ -30,20 +30,22 @@ interface HeaderContextType {
   setOrientation: (orientation: string) => void;
   setIsHorizontal: (isHorizontal: boolean) => void;
 
-  analysisData: AnalysisData;
-  setAnalysisData: (analysisData: AnalysisData) => void;
+  analysisData: AnalysisData | null;
+  setAnalysisData: (analysisData: AnalysisData | null) => void;
 
-  focusGame: TrophyTitle | null;
-  setFocusGame: (game: TrophyTitle | null) => void;
+  focusGame: GameTitle | null;
+  setFocusGame: (game: GameTitle | null) => void;
   
   // Novos estados para imagens
   backgroundImage: string;
+  bgFullImage: string;
   heroImage: string | null;
   logoImage: string | null;
   coverImage: string | null;
   
   // Setters para imagens
   setBackgroundImage: (url: string) => void;
+  setBgFullImage: (url: string) => void;
   setHeroImage: (url: string | null) => void;
   setLogoImage: (url: string | null) => void;
   setCoverImage: (url: string | null) => void;
@@ -55,12 +57,13 @@ export const HeaderProvider = ({ children }: { children: ReactNode }) => {
   const [show, setShow] = useState(false);
   const [title, setTitle] = useState("Dashboard Padrão");
   const [navigateRoute, setNavigateRoute] = useState("/");
-  const [psnUser, setPsnUser] = useState<PSNUser | null>(null);
+  const [psnUser, setPsnUserState] = useState<PSNUser | null>(null);
   const [texto, setTexto] = useState("Dashboard Padrão");
   const [trophyData, setTrophyData] = useState<TrophySummary | null>(null);
-  const [focusGame, setFocusGame] = useState<TrophyTitle | null>(null);
+  const [focusGame, setFocusGame] = useState<GameTitle | null>(null);
   const [onClick, setOnClick] = useState<() => void>(() => {});
   const [backgroundImage, setBackgroundImage] = useState<string>('/bg.jpg');
+  const [bgFullImage, setBgFullImage] = useState<string>('/bg.jpg');
   const [heroImage, setHeroImage] = useState<string | null>(null);
   const [logoImage, setLogoImage] = useState<string | null>(null);
   const [coverImage, setCoverImage] = useState<string | null>(null);
@@ -75,18 +78,27 @@ export const HeaderProvider = ({ children }: { children: ReactNode }) => {
     setOnClick(() => fn);
   }, []);
 
+  const setPsnUser = useCallback((psnUser: PSNUser | null | undefined) => {
+    setPsnUserState(psnUser ?? null);
+  }, []);
+
+  const stableSetNavigateRoute = useCallback((route: string | undefined) => {
+    setNavigateRoute(route ?? "/");
+  }, []);
+
   return (
     <HeaderContext.Provider value={{ 
       show, setShow, 
       title, setTitle, 
-      psnUser, setPsnUser, 
+      psnUser, setPsnUser,
       texto, setTexto, 
       trophyData, setTrophyData, 
       onClick, setOnClick: stableSetOnClick,
       focusGame, setFocusGame,
       backgroundImage, setBackgroundImage,
+      bgFullImage, setBgFullImage,
       analysisData, setAnalysisData,
-      navigateRoute, setNavigateRoute,
+      navigateRoute, setNavigateRoute: stableSetNavigateRoute,
       heroImage, setHeroImage,
       logoImage, setLogoImage,
       coverImage, setCoverImage,
@@ -125,6 +137,8 @@ export const useHeader = () => {
     setFocusGame: context.setFocusGame,
     backgroundImage: context.backgroundImage,
     setBackgroundImage: context.setBackgroundImage,
+    bgFullImage: context.bgFullImage,
+    setBgFullImage: context.setBgFullImage,
     heroImage: context.heroImage,
     setHeroImage: context.setHeroImage,
     logoImage: context.logoImage,
@@ -142,11 +156,13 @@ export const useHeader = () => {
   };
 };
 
-export const getPlatform = (game: TrophyTitle, size = 24) => {
-    switch (game?.trophyTitlePlatform || game?.gameTitle?.platform) {
+export const getPlatform = (game: GameTitle, size = 24) => {
+    switch (game.category || game?.trophyTitle?.trophyTitlePlatform) {
       case 'PS4':
+      case 'ps4_game':
         return <SiPlaystation4 size={size} className="h-6 p-0 m-0 -mt-1"/>
       case 'PS5':
+      case 'ps5_native_game':
         return <SiPlaystation5 size={size} className="h-6 p-0 m-0 -mt-1"/>
       case 'PS5,PSPC':
         return <SiPlaystation5 size={size} className="h-6 p-0 m-0 -mt-1"/>

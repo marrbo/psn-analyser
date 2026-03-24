@@ -1,13 +1,14 @@
 // app/components/TrophyFilters.tsx
 "use client";
 
-import { FiFilter, FiSearch, FiCheck } from "react-icons/fi";
+import { FiSearch, FiCheck } from "react-icons/fi";
 import {
   FaSortAlphaDown,
   FaSortAlphaDownAlt,
   FaSortAmountDown,
   FaSortAmountDownAlt,
-  FaTrashAlt
+  FaTrashAlt,
+  FaTrophy
 } from "react-icons/fa";
 import { useMemo, useState } from "react";
 import { TrophyGroup } from "@/types/trophies";
@@ -26,6 +27,7 @@ interface TrophyFiltersProps {
   readonly onSearchChange: (value: string) => void;
   readonly showDLCs: boolean;
   readonly onToggleDLCs: (value: boolean) => void;
+  readonly filteredItemsCount: number;
 }
 
 export interface TrophyFiltersState {
@@ -40,7 +42,8 @@ export default function TrophyFilters({
   sortBy,
   onSortChange,
   searchTerm,
-  onSearchChange
+  onSearchChange,
+  filteredItemsCount
 }: TrophyFiltersProps) {
   const [showFilters, setShowFilters] = useState(false);
 
@@ -459,7 +462,7 @@ export default function TrophyFilters({
                     <span
                       className={`text-xs ${statusInfo?.color || "text-green-300"}`}
                     >
-                      {statusInfo?.label || status}
+                      {statusInfo?.label || status} [{filteredItemsCount}]
                     </span>
                     <span
                       onClick={() => handleFilterSelect("status", status)}

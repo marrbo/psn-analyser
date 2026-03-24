@@ -34,15 +34,14 @@ export async function POST(request: NextRequest) {
     // Verificar se pode criar nova análise (cache de 60 minutos)
     const analysisCheck = await canCreateNewAnalysis(accountId);
 
-    if (!analysisCheck.canCreate && analysisCheck.existingAnalysis) {
+    if (analysisCheck.existingAnalysis && (analysisCheck.timeRemaining || 0) <= 0) {
       const timeRemaining = formatTimeRemaining(analysisCheck.timeRemaining || 0);
 
       const analysisId = analysisCheck.existingAnalysis._id?.toString();
 
       if (analysisId) {
-        TrophyService.updateUser(analysisId, accountId);  
+        Promise.resolve(TrophyService.updateUser(analysisId, accountId));
       }
-      
 
       return NextResponse.json({
         analysisId: analysisCheck.existingAnalysis._id?.toString(),
