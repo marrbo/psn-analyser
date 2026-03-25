@@ -59,6 +59,38 @@ const nextConfig: NextConfig = {
     fetches: {
       fullUrl: true,
     },
+  },
+  headers: async () => {
+    return [
+      {
+        source: '/sw.js',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, must-revalidate'
+          },
+          {
+            key: 'Service-Worker-Allowed',
+            value: '/'
+          }
+        ]
+      },
+      {
+        source: '/manifest.json',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'application/manifest+json'
+          }
+        ]
+      }
+    ];
+  },
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.output.webassemblyModuleFilename = '../static/wasm/[modulehash].wasm';
+    }
+    return config;
   }
 };
 

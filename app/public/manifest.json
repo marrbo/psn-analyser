@@ -1,0 +1,67 @@
+// public/manifest.json
+{
+  "name": "PSN Trophy Analyser",
+  "short_name": "PSN Analyser",
+  "description": "Plataforma de Análise de Troféus PSN com Suporte Offline",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#000000",
+  "background_color": "#ffffff",
+  "screenshots": [
+    {
+      "src": "/screenshots/screenshot-1.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/screenshots/screenshot-2.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
+  ],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["games", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Analisar Perfil",
+      "short_name": "Analisar",
+      "description": "Iniciar uma nova análise de troféus",
+      "url": "/?action=analyze",
+      "icons": [
+        {
+          "src": "/icons/analyze-icon.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Minhas Análises",
+      "short_name": "Análises",
+      "description": "Ver análises anteriores",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "/icons/dashboard-icon.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}
