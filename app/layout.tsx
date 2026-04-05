@@ -1,3 +1,5 @@
+"use client";
+
 // app/layout.tsx
 import { courgette, funnel, jersey } from "@/styles/fonts";
 import "./globals.css";

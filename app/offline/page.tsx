@@ -9,15 +9,7 @@ export default function OfflinePage() {
   const [analyses, setAnalyses] = useState<any[]>([]);
   const [isOnline, setIsOnline] = useState(true);
 
-  useEffect(() => {
-    setIsOnline(navigator.onLine);
-    window.addEventListener('online', () => setIsOnline(true));
-    window.addEventListener('offline', () => setIsOnline(false));
-
-    loadLocalAnalyses();
-  }, []);
-
-  async function loadLocalAnalyses() {
+   async function loadLocalAnalyses() {
     try {
       await offlineDb.init();
       // Buscar todas as análises do IndexedDB
@@ -27,6 +19,14 @@ export default function OfflinePage() {
       console.error('Erro ao carregar dados:', error);
     }
   }
+
+  useEffect(() => {
+    setIsOnline(navigator.onLine);
+    window.addEventListener('online', () => setIsOnline(true));
+    window.addEventListener('offline', () => setIsOnline(false));
+
+    loadLocalAnalyses();
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-900 text-white p-4">

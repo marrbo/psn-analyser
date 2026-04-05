@@ -1,7 +1,6 @@
-// public/manifest.json
 {
-  "name": "PSN Trophy Analyser",
-  "short_name": "PSN Analyser",
+  "name": "PlayGRID - PSN Profile Analyser",
+  "short_name": "PlayGRID",
   "description": "Plataforma de Análise de Troféus PSN com Suporte Offline",
   "start_url": "/",
   "scope": "/",
@@ -37,7 +36,10 @@
       "purpose": "maskable"
     }
   ],
-  "categories": ["games", "productivity"],
+  "categories": [
+    "games",
+    "productivity"
+  ],
   "shortcuts": [
     {
       "name": "Analisar Perfil",
