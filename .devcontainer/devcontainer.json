@@ -1,10 +1,10 @@
 {
   "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json",
-  "name": "Next.js & MongoDB DevContainer",
-  "dockerComposeFile": [
-    "../docker-compose.yml"
-  ],
-  "service": "app",
+  "name": "Next.js DevContainer K8s",
+  "build": {
+    "dockerfile": "../Dockerfile.dev",
+    "context": ".."
+  },
   "workspaceFolder": "/app",
   "customizations": {
     "vscode": {
@@ -25,21 +25,5 @@
       ]
     }
   },
-  "forwardPorts": [3000, 27017, 8081],
-  "portsAttributes": {
-    "3000": {
-      "label": "Next.js App",
-      "onAutoForward": "notify"
-    },
-    "8081": {
-      "label": "Mongo Express",
-      "onAutoForward": "silent"
-    },
-    "27017": {
-      "label": "MongoDB Server",
-      "onAutoForward": "ignore"
-    }
-  },
-  "postCreateCommand": "npm install",
-  "shutdownAction": "stopCompose"
+  "forwardPorts": [3000]
 }
