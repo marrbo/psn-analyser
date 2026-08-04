@@ -14,7 +14,7 @@ COPY tsconfig.json ./
 
 # Instalar dependências
 RUN npm install -g pnpm
-RUN pnpm install
+RUN pnpm config set ignore-scripts false && pnpm install
 
 # Copiar código fonte
 COPY . .
