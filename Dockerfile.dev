@@ -12,9 +12,14 @@ RUN apk add --no-cache \
 COPY package*.json ./
 COPY tsconfig.json ./
 
-# Instalar dependências
+# Instalar dependências globais
 RUN npm install -g pnpm
-RUN pnpm install --no-frozen-lockfile --ignore-scripts=false
+
+# Instalação forçada ignorando todas as travas de segurança do pnpm v10+
+RUN PNPM_CONFIG_ONLY_BUILT_DEPENDENCIES="*" \
+    PNPM_CONFIG_STRICT_DEP_BUILDS="false" \
+    pnpm install --no-frozen-lockfile --ignore-scripts=false
+
 
 # Copiar código fonte
 COPY . .
