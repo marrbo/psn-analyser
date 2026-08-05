@@ -640,7 +640,7 @@ export default class PSNTrophyService {
 
     if (existingGame) {
 
-      const bgImage = await gameRepository.getBackgroundImages(existingGame)
+      const bgImage = await gameRepository.getBackgroundImages(existingGame);
 
       gameData.trophyTitle.trophyTitleName = existingGame?.trophyTitle.trophyTitleName;
       gameData.trophyTitle.trophyTitleIconUrl = existingGame?.trophyTitle.trophyTitleIconUrl;
