@@ -11,9 +11,12 @@ RUN apk add --no-cache \
 # Copiar package.json
 COPY package*.json ./
 COPY tsconfig.json ./
+COPY .pnpmrc ./
 
 # Instalar pnpm globalmente
 RUN npm install -g pnpm
+
+ENV PNPM_ONLY_BUILT_DEPENDENCIES=sharp,unrs-resolver
 
 # Instala e aprova automaticamente todas as builds pendentes
 RUN pnpm install --no-frozen-lockfile
