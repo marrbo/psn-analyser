@@ -1,10 +1,14 @@
+/// <reference lib="webworker" />
 // public/sw.ts (ou em app/sw.ts com Next.js)
-const CACHE_VERSION = 'v1';
+type ExtendedInstallEvent = ExtendableEvent & { waitUntil: (promise: Promise<any>) => void };
+type ExtendedActivateEvent = ExtendableEvent & { waitUntil: (promise: Promise<any>) => void };
+type ExtendedFetchEvent = FetchEvent & { respondWith: (promise: Promise<Response>) => void };
+
 const CACHE_NAMES = {
-  pages: 'pages-cache-v1',
-  api: 'api-cache-v1',
-  assets: 'assets-cache-v1',
-  images: 'images-cache-v1'
+  pages: 'pages-cache',
+  api: 'api-cache',
+  assets: 'assets-cache',
+  images: 'images-cache'
 };
 
 const PRECACHE_URLS = [

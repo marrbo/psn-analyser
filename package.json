@@ -24,6 +24,7 @@
     "clsx": "^2.1.1",
     "daisyui": "^5.5.14",
     "date-fns": "^4.1.0",
+    "idb": "^8.0.0",
     "lucide-react": "^0.294.0",
     "mongodb": "^7.0.0",
     "next": "^16.0.10",
@@ -34,8 +35,7 @@
     "sharp": "^0.34.5",
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^4.1.18",
-    "workbox-window": "^7.0.0",
-    "idb": "^8.0.0"
+    "workbox-window": "^7.0.0"
   },
   "devDependencies": {
     "@types/node": "^25.0.3",

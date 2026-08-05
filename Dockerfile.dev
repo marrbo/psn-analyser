@@ -1,26 +1,19 @@
-# Dockerfile.dev
 FROM node:25-alpine3.22
 
 WORKDIR /app
 
-# Instalar dependências do sistema
-RUN apk add --no-cache \
-    git \
-    openssh-client
+RUN apk add --no-cache git openssh-client
 
-# Copiar package.json
+# Copia arquivos de configuração
 COPY package*.json ./
 COPY tsconfig.json ./
+COPY pnpm-workspace.yaml ./
 
-# Instalar dependências
 RUN npm install -g pnpm
-RUN pnpm install
 
-# Copiar código fonte
+RUN pnpm install --no-frozen-lockfile
+
 COPY . .
 
-# Expor porta
 EXPOSE 3000
-
-# Comando de desenvolvimento
 CMD ["npm", "run", "dev"]

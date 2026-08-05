@@ -142,8 +142,10 @@ export class PSNAuth {
           throw new Error(`Code não encontrado na URL de redirecionamento: ${location}`);
         }
 
-        this.token.authCode = code;
-        await this.cache.setItem<Token | null>(this.token);
+        if (this.token) {
+          this.token.authCode = code;
+          await this.cache.setItem<Token | null>(this.token);
+        }
 
         return code;
       }

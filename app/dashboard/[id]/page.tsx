@@ -4,7 +4,6 @@ import { useEffect, useState, Suspense, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import DashboardContent from '../../components/Dashboard';
 import { AnalysisData } from '@/lib/mongodb';
-import { userRepository } from '@/types/repository/user-repository';
 import LoadingSpinner from '@/app/components/ui/LoadingSpinner';
 
 function DashboardPageContent() {
