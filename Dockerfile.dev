@@ -19,6 +19,7 @@ RUN npm install -g pnpm
 ENV PNPM_ONLY_BUILT_DEPENDENCIES=sharp,unrs-resolver
 
 # Instala e aprova automaticamente todas as builds pendentes
+RUN pnpm approve --all
 RUN pnpm install --no-frozen-lockfile
 
 # Copiar código fonte
