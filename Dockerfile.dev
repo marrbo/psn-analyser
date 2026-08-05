@@ -11,7 +11,7 @@ RUN apk add --no-cache \
 # Copiar package.json
 COPY package*.json ./
 COPY tsconfig.json ./
-COPY .pnpmrc ./
+COPY .npmrc ./
 
 # Instalar pnpm globalmente
 RUN npm install -g pnpm
