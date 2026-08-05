@@ -16,7 +16,7 @@ COPY tsconfig.json ./
 RUN npm install -g pnpm
 
 # Instala e aprova automaticamente todas as builds pendentes
-RUN pnpm install --no-frozen-lockfile --ignore-scripts=false; pnpm approve --all
+RUN pnpm install --no-frozen-lockfile --ignore-scripts=false
 
 # Copiar código fonte
 COPY . .
