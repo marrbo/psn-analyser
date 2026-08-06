@@ -2,12 +2,11 @@
 
 import { useHeader } from "@/providers/HeaderContext";
 import Card, { TrophyMeterData } from "./ui/Card";
-import { UserPresence, UserProfile } from "@/types/psn";
+import { UserProfile } from "@/types/psn";
 import { DefinedTrophies } from "@/types/trophies";
 import { useEffect } from "react";
 import TopBar from "./ui/TopBar";
 import SideBar from "./ui/SideBar";
-import NavigationBarComponent from "./NavigationBar";
 
 /*
 
@@ -64,8 +63,6 @@ function RouteBackComponent() {
       const isMobileDevice = /mobile/i.test(ua);
 
       setIsMobile(isMobileSize || isMobileDevice);
-
-      console.log("isMobile: ", isMobileSize || isMobileDevice);
     };
 
     window.addEventListener("resize", checkDevice);
@@ -145,12 +142,6 @@ function RouteBackComponent() {
     }
   }
 
-  const statusColor =
-    (userPresence?.primaryPlatformInfo.onlineStatus === "offline")
-      ? "border-red-500/20"
-      : "border-green-500";
-  console.log("🚀 ~ file: RouteBack.tsx ~ line 81 ~ statusColor", statusColor);
-
   return (
     <div className="h-20 w-screen min-w-screen fixed top-0 left-0 bottom-0 right-0 z-10 pointer-events-none">
       {/* TopBar */}
@@ -186,10 +177,10 @@ function RouteBackComponent() {
               <div className={`${show ? "" : "hidden"} flex justify-center`}>
                 <Card
                   profilePicture={profilePicture}
-                  lastOnlineDate={userPresence?.lastOnlineDate}
+                  lastOnlineDate={userPresence?.primaryPlatformInfo?.lastOnlineDate ? new Date(userPresence.primaryPlatformInfo.lastOnlineDate) : new Date()}
                   accountId={psnUser?.accountId}
                   userName={profileName}
-                  avatarStatus={userPresence?.onlineStatus}
+                  avatarStatus={userPresence?.primaryPlatformInfo?.onlineStatus}
                   trophyMeter={data}
                 ></Card>
               </div>

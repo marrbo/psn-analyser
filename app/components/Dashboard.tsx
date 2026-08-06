@@ -9,6 +9,7 @@ import { AnalysisData } from "@/lib/mongodb";
 import { useHeader } from "@/providers/HeaderContext";
 import { useEffect, useCallback, useState } from "react";
 import { NormalizedScore } from "@/lib/score.types";
+import { GameTitle } from "@/types/trophies";
 
 interface DashboardProps {
   data: AnalysisData;
@@ -157,12 +158,89 @@ export default function Dashboard({ data, onNewAnalysis }: DashboardProps) {
     <div className="min-h-screen flex items-center justify-center">
       
       <div className={`w-full h-full justify-center`}>
+        {/* Biblioteca de Jogos */}
+        <div className="mb-20 p-4">
+          <h3 className="text-5xl mb-6 text-center font-bold bg-linear-to-r from-gray-900 via-blue-800 to-cyan-300 h-16 bg-clip-text text-transparent drop-shadow-lg">
+            <span>Jogos recentes</span>
+          </h3>
+          <div className="glass-effect rounded-2xl border-blue-800">
+            {/* Preview dos primeiros 6 jogos */}
+            <div className="grid grid-cols-3 md:grid-cols-3 sm:grid-cols-2 lg:grid-cols-6 gap-4 p-6">
+              {games.slice(0, 5).map((game: GameTitle) => (
+                <Link
+                  key={game.npCommunicationId}
+                  href={`/games/${
+                    game.npCommunicationId
+                  }?accountId=${data.accountId.toLocaleString()}`}
+                  data-tip={game.localizedName || game.name} 
+                  className="group tooltip rounded-2xl p-2 group hover:bg-gray-950 transition-colors duration-300"
+                >
+                  <div className="aspect-square w-full relative rounded-lg overflow-hidden glass-effect button-effect">
+                    <Image
+                      src={
+                        game?.localizedImageUrl ||
+                        game.trophyTitle?.trophyTitleIconUrl
+                      }
+                      alt={game.localizedName || game.name}
+                      width={200}
+                      height={200}
+                      className="w-full h-full saturate-30 group-hover:saturate-120 transition-transform duration-300"
+                    />
+                    {/* <div className="absolute top-0 left-0 right-0 bg-linear-to-b from-black to-gray-900/10 uppercase text-shadow-xs p-2 items-center text-center">
+                      <div className="text-white text-sm font-semibold truncate">
+                        {game.gameTitle?.localizedName || game.titulo}
+                      </div>
+                    </div> */}
+                    <div className="absolute bottom-0 left-0 right-0 p-2 bg-linear-to-t from-black/80 to-transparent items-center text-center">
+                      {/* <span className="text-right absolute bottom-2 right-2 bg-gray-900/70 rounded-full px-2 py-1 text-xs">{game?.gameTitle?.completionPercentage || game.progress || 0}%</span> */}
+
+                      <span className="text-right absolute bottom-0 right-1">
+                        <ProgressRing
+                          progress={
+                            game?.completionPercentage ||
+                            game.trophyTitle?.progress ||
+                            0
+                          }
+                          earned={game?.earnedTrophies}
+                          total={game?.totalTrophies}
+                          fillColor="shadow-white"
+                          size={65}
+                        />
+                      </span>
+                      <div className="text-center rounded-full px-2 py-1 w-12 text-xs text-white font-semibold bg-gray-900/70">
+                        <span className="text-center">
+                          {game.trophyTitle?.trophyTitlePlatform}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+              
+                <Link
+                  href={`/games?analysisId=${data._id}&accountId=${data.accountId}`}
+                  data-tip="Todos os Jogos" 
+                  className="tooltip group rounded-2xl p-2 group hover:bg-gray-950 transition-colors duration-300 aspect-square"
+                >
+                  <div className="rounded-lg h-full w-full items-center text-center text-2xl flex flex-col justify-center gap-4 hover:text-yellow-600 transition-colors duration-300 glass-effect button-effect grayscale group-hover:grayscale-0">
+                    <p>🎮</p> 
+                    <p>Todos ...</p>
+                    <p className="text-blue-200 text-lg">
+                      ({(games.length || 0).toLocaleString("pt-BR")})
+                    </p>
+                  </div>
+                </Link>
+            </div>
+          </div>
+
+        </div>
+        
         {/* Classificação Mi Mi Mi */}
 
         <h3 className="flex-0 text-5xl mt-4 mb-6 h-16 text-center font-bold bg-linear-to-r from-green-400 to-yellow-600 bg-clip-text text-transparent drop-shadow-lg">
               Classificação
         </h3>
-        <div className="grid grid-cols-1 lg:grid-cols-3 md:grid-cols-1 gap-y-6 gap-x-0 lg:gap-6 items-center px-6 pb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 md:grid-cols-1 gap-y-6 gap-x-0 lg:gap-6 items-center px-6 mb-10">
           
           <div className={`${getMigueColorBorder(data.migueScore.totalScore)} col-span-1 hover:border-white text-center p-6 glass-effect`}>
             <div className="flex justify-between items-center space-y-0">
@@ -202,12 +280,6 @@ export default function Dashboard({ data, onNewAnalysis }: DashboardProps) {
               label="Metacritic"
               transparent={true}
               icon="0-20 pontos"
-            />
-            <StatCard
-              value={data.migueScore.platinasScore.totalPoints}
-              label="Platinas"
-              transparent={true}
-              icon={`0-20 pontos`}
             />
           </div>
           
@@ -435,7 +507,7 @@ export default function Dashboard({ data, onNewAnalysis }: DashboardProps) {
 
         {/* Informações de Debug (apenas desenvolvimento) */}
         {process.env.NODE_ENV === "development" && (
-          <div className="glass-effect rounded-2xl mb-20 border-2 border-gray-500/20 gap-6 items-center p-4">
+          <div className="glass-effect rounded-2xl mb-20 border-2 border-gray-500/20 gap-6 items-center p-4 mt-10">
             <h3 className="text-xl font-bold text-white mb-4">
               🔧 Informações de Debug
             </h3>

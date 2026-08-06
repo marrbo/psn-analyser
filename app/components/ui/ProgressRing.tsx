@@ -39,7 +39,6 @@ export default function ProgressRing({
   const textSmallClass = `text-[${textSize - 2}pt]`;
   const sizeTrophy = ((20 / size) * 0.5 * 100).toPrecision(1); // Ajusta o tamanho do troféu proporcionalmente ao tamanho do anel
   const trophySize = `w-${sizeTrophy} h-${sizeTrophy}`;
-  console.log('trophySize:', trophySize);
 
   useEffect(() => {
     progressOffsetRef.current = circumference - (progress / 100) * circumference;

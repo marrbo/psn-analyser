@@ -89,7 +89,7 @@ export default function SideBar({ show }: { show?: boolean }) {
         {/* <div className="border-none bg-linear-180 from-black/90 via-10% via-black/30 to-black w-100 h-120 rounded-lg"/> */}
         <div className="border-none bg-radial-[at_50%_30%] from-transparent via-10% via-black/10 to-black w-100 h-120 rounded-lg"/>
 
-        <div className="p-5 w-100 glass-apple-dark h-120
+        <div className="p-5 w-100 h-120 border border-white/10
           absolute top-0 left-0 right-0 rounded-lg animate-shine-apple">
           
           {/* Conteúdo */}

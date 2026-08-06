@@ -81,36 +81,6 @@ function GameDetailPageContent() {
         const data = await response.json();
         setAnalysisData(data);
         setFocusGame(data.games[0]);
-        
-        // if (!data.games[0].backgroundImage) {
-        //   const backgroundImage =
-        //     game?.localizedImageUrl ||
-        //     game?.concept?.media.images.find(
-        //       (a) => a.type === "GAMEHUB_COVER_ART",
-        //     )?.url ||
-        //     game?.concept?.media.images.find(
-        //       (a) => a.type === "BACKGROUND_LAYER_ART",
-        //     )?.url ||
-        //     game?.concept?.media.images[1]?.url ||
-        //     game?.trophyTitle.trophyTitleIconUrl ||
-        //     "/default-game-cover.webp";
-          
-        //   data.games[0].backgroundImage = backgroundImage;
-        // }
-
-        // setBackgroundImage(data.games[0].backgroundImage);
-
-        // if (data.games[0].logoImage) {
-        //   setLogoImage(data.games[0].logoImage);
-        // } else {
-        //   setLogoImage(null);
-        // }
-
-        // if (data.games[0].heroImage) {
-        //   setHeroImage(data.games[0].heroImage);
-        // } else {
-        //   setHeroImage(null);
-        // }
 
         setTitle(`Detalhes do Jogo: ${data.games[0].localizedName}`);
         setPsnUser(data.psnUser);
@@ -367,7 +337,7 @@ function GameDetailPageContent() {
     game?.trophyTitle.trophyTitleIconUrl ||
     "/default-game-cover.webp";
 
-  const platformText = game?.trophyTitle.trophyTitlePlatform || game?.platform || '';
+  const platformText = game?.platform || game?.trophyTitle.trophyTitlePlatform || '';
   const platform = getPlatform(game!)
   
   const title =

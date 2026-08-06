@@ -588,8 +588,8 @@ export default class PSNTrophyService {
       
       const gameSaved = await this.saveGameToRepository({ ...game });
 
-      game.trophyTitle.trophyTitleIconUrl = gameSaved.trophyTitle.trophyTitleIconUrl;
-      game.trophyTitle.trophyTitleName = gameSaved.trophyTitle.trophyTitleName;
+      game.trophyTitle.trophyTitleIconUrl = gameSaved.trophyTitle?.trophyTitleIconUrl;
+      game.trophyTitle.trophyTitleName = gameSaved.trophyTitle?.trophyTitleName;
 
       game.backgroundImage = gameSaved.backgroundImage;
       game.heroImage = gameSaved.heroImage;
@@ -644,7 +644,7 @@ export default class PSNTrophyService {
       const bgImage = await gameRepository.getBackgroundImages(existingGame);
 
       gameData.trophyTitle.trophyTitleName = existingGame?.trophyTitle.trophyTitleName;
-      gameData.trophyTitle.trophyTitleIconUrl = existingGame?.trophyTitle.trophyTitleIconUrl;
+      // gameData.trophyTitle.trophyTitleIconUrl = existingGame?.trophyTitle?.trophyTitleIconUrl;
       gameData.backgroundImage = bgImage.backgroundImage || images.backgroundImage;
       gameData.heroImage = bgImage.heroImage || images.heroImage;
       gameData.logoImage = bgImage.logoImage || images.logoImage;
