@@ -1,5 +1,5 @@
 // services/database/BaseRepository.ts
-import { Db, Collection, ObjectId, Filter, UpdateFilter, WithId, Document, OptionalUnlessRequiredId } from 'mongodb';
+import { Collection, ObjectId, Filter, UpdateFilter, WithId, Document, OptionalUnlessRequiredId } from 'mongodb';
 import { MongoDBConnection } from './mongodb-connection';
 
 export interface RepositoryOptions {
@@ -49,7 +49,7 @@ export abstract class BaseRepository<T extends Document> {
 
   protected async getCollection(): Promise<Collection<T>> {
     const { db } = await this.connection.getConnection();
-    const targetDb = this.databaseName ? db.client.db() : db;
+    const targetDb = this.databaseName ? db : db.collection(this.collectionName).db;
     return targetDb.collection<T>(this.collectionName);
   }
 
@@ -57,11 +57,11 @@ export abstract class BaseRepository<T extends Document> {
     const prepared = { ...document };
     
     if (this.createTimestamps && !prepared.createdAt) {
-      prepared.createdAt = new Date() as any;
+      (prepared as any).createdAt = new Date();
     }
     
     if (this.updateTimestamps && !prepared.updatedAt) {
-      prepared.updatedAt = new Date() as any;
+      (prepared as any).updatedAt = new Date();
     }
     
     return prepared;
@@ -71,7 +71,7 @@ export abstract class BaseRepository<T extends Document> {
     const prepared = { ...updates };
     
     if (this.updateTimestamps && !prepared.updatedAt) {
-      prepared.updatedAt = new Date() as any;
+      (prepared as any).updatedAt = new Date();
     }
     
     return prepared;

@@ -34,14 +34,12 @@ export class PSNAuth {
   }
 
   private getExpired(token: Token): boolean {
-    if (token) {
-      const expirationDate = new Date(
-        new Date(token.lastUpdated || new Date()).getTime() + token.expires_in * 1000
-      ).toISOString();  
-
-      return new Date(expirationDate).getTime() < new Date().getTime();
-    }
-    return true;
+    if (!token) return true;
+    const expiresIn = token.expires_in ?? 0;
+    const lastUpdated = token.lastUpdated ? new Date(token.lastUpdated) : new Date();
+    const baseTime = isNaN(lastUpdated.getTime()) ? Date.now() : lastUpdated.getTime();
+    const expirationTime = baseTime + expiresIn * 1000;
+    return isNaN(expirationTime) || expirationTime < Date.now();
   }
 
   private accessTokenExpired(): boolean {
@@ -63,18 +61,17 @@ export class PSNAuth {
   async authenticate(): Promise<Token | null> {
     this.token = await this.cache.getItem<Token>();
 
-    // Mesmo com token válido está dando erro 401
-    // forçando revalidar o token
-    if (this.token && !this.refreshTokenExpired()) {
-      await this.refreshToken(this.token.refresh_token);
-    }
+    const accessTokenExpired = this.accessTokenExpired();
+    
+    const refreshTokenExpired = this.refreshTokenExpired();
 
-    if (this.token && !this.accessTokenExpired()) {
-      return this.token;
-    }
+    let refreshTokenStatus = 200;
 
-    if (this.token && this.accessTokenExpired() && !this.refreshTokenExpired()) {
-      await this.refreshToken(this.token.refresh_token);
+    if (refreshTokenExpired) {
+      refreshTokenStatus = await this.refreshToken(this.token.refresh_token);
+    }
+    
+    if (this.token && !accessTokenExpired && refreshTokenStatus === 200) {
       return this.token;
     }
 
@@ -83,14 +80,19 @@ export class PSNAuth {
     }
 
     try {
-      // Método IDÊNTICO ao PowerShell - espera o 302 e extrai o code
-      const authCode =  await this.getAuthCodePowerShellMethod(this.npsso);
+      let authCode = this.token?.authCode;
+      
+      if (!authCode) {
+        // Método IDÊNTICO ao PowerShell - espera o 302 e extrai o code
+        authCode =  await this.getAuthCodePowerShellMethod(this.npsso);
+      }
 
       const tokenData = await this.exchangeCodeForToken(authCode);
       this.token = tokenData;
       this.token.authCode = authCode;
 
       new CacheService(this.npsso, 'tokens').setItem(this.token);
+      await this.cache.setItem<Token | null>(this.token);
 
       return this.token;
     } catch (error) {
@@ -142,9 +144,6 @@ export class PSNAuth {
           throw new Error(`Code não encontrado na URL de redirecionamento: ${location}`);
         }
 
-        this.token.authCode = code;
-        await this.cache.setItem<Token | null>(this.token);
-
         return code;
       }
       // Se não for 302, verificar se é 400 com mensagem de erro
@@ -193,7 +192,7 @@ export class PSNAuth {
     return tokenData;
   }
 
-  private async refreshToken(refresh_token: string): Promise<void> {
+  private async refreshToken(refresh_token: string): Promise<number> {
 
     const body = new URLSearchParams({
       'refresh_token': refresh_token,
@@ -212,15 +211,21 @@ export class PSNAuth {
       body: body
     });
 
-    if (!response.ok) {
+    if (!response.ok && response.status !== 403) {
       const errorText = await response.json();
       console.error('❌ Erro no refreshToken: code: {0}, error: {1}', errorText.error_code, errorText.error_description);
-      throw new Error(`Falha no refreshToken: ${response.status} - ${errorText.error_description || errorText.error}`);
+      
+    } else if (response.status === 403) {
+      console.warn('⚠️ Refresh token expirado ou inválido. Necessário reautenticar.');
+      this.token = null;
+      return response.status;
     }
 
     const tokenData = await response.json();
 
     this.token = tokenData;
+
+    return response.status;
   }
 
   async getAccessToken(): Promise<string | null> {

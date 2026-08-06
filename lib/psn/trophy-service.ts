@@ -16,6 +16,7 @@ import { gameRepository } from '@/types/repository/game-repository';
 import { NormalizedScore, UserPlatinumData } from '../score.types';
 import { trophySumaryRepository } from '@/types/repository/trophy-repository';
 import { analyseRepository } from '@/types/repository/analyse-repository';
+import { gotyRepository } from '@/types/repository/goty-repository';
 
 export default class PSNTrophyService {
   private readonly auth: PSNAuth;
@@ -125,7 +126,7 @@ export default class PSNTrophyService {
 
       returnAnalysis = resultAnalysis;
 
-      this.GOTY_GAMES_DATABASE = await this.getGOTYGames();
+      this.GOTY_GAMES_DATABASE = await gotyRepository.getGOTYGames();
       const trophySummary = await this.getTrophySummary(accountId, token);
 
       if (resultAnalysis) {
@@ -169,7 +170,7 @@ export default class PSNTrophyService {
       // await metacriticScraper.scrapeMultiplePages(584);
 
 
-      this.GOTY_GAMES_DATABASE = await this.getGOTYGames();
+      this.GOTY_GAMES_DATABASE = await gotyRepository.find({ sort: { ano_premiacao: -1 } });
       const trophySummary = await this.getTrophySummary(accountId, token);
 
       // const allTitles = await this.getUserTitlesWithPaginationOld(accountId, token);
@@ -928,35 +929,6 @@ export default class PSNTrophyService {
     return 2;
   }
 
-  private determineGenre(gameTitle: string): string {
-    const lowerTitle = gameTitle.toLowerCase();
-
-    // Mapeamento de palavras-chave para gêneros baseado na taxonomia
-    const genreKeywords: { [key: string]: string[] } = {
-      'Platform': ['crash', 'spyro', 'ratchet', 'jak', 'sackboy', 'littlebigplanet', 'mario', 'donkey kong', 'celeste', 'hollow knight'],
-      'FPS': ['call of duty', 'battlefield', 'destiny', 'doom', 'wolfenstein', 'overwatch', 'counter-strike', 'halo', 'far cry'],
-      'TPS': ['grand theft auto', 'red dead redemption', 'uncharted', 'tomb raider', 'the last of us', 'gears of war'],
-      'Fighting': ['street fighter', 'tekken', 'mortal kombat', 'guilty gear', 'soulcalibur', 'super smash bros', 'dragon ball fighterz'],
-      'Action-Adventure': ['assassin\'s creed', 'batman: arkham', 'horizon', 'spider-man', 'god of war', 'the legend of zelda', 'metroid', 'castlevania'],
-      'RPG': ['final fantasy', 'persona', 'witcher', 'elden ring', 'dragon quest', 'mass effect', 'skyrim', 'fallout', 'dark souls', 'bloodborne', 'diablo', 'borderlands'],
-      'Sports': ['fifa', 'nba', 'mlb', 'pga', 'ufc', 'wwe', 'madden', 'nhl', 'pro evolution soccer', 'rocket league'],
-      'Racing': ['gran turismo', 'need for speed', 'driveclub', 'wreckfest', 'dirt', 'forza', 'burnout', 'mario kart'],
-      'Strategy': ['civilization', 'xcom', 'fire emblem', 'star craft', 'age of empires', 'total war', 'hearthstone'],
-      'Simulation': ['the sims', 'simcity', 'farming simulator', 'euro truck simulator', 'flight simulator', 'animal crossing'],
-      'Puzzle': ['tetris', 'candy crush', 'bejeweled', 'portal', 'the witness', 'professor layton'],
-      'Horror': ['resident evil', 'silent hill', 'dead space', 'outlast', 'amnesia', 'the evil within'],
-      'Indie': ['stardew valley', 'minecraft', 'terraria', 'undertale', 'cuphead', 'among us']
-    };
-
-    for (const [genre, keywords] of Object.entries(genreKeywords)) {
-      if (keywords.some(keyword => lowerTitle.includes(keyword))) {
-        return genre;
-      }
-    }
-
-    return 'Other';
-  }
-
   private estimateTimeToPlatinum(totalTrophies: number): number {
     if (totalTrophies <= 15) return 10;
     if (totalTrophies <= 25) return 20;
@@ -986,89 +958,6 @@ export default class PSNTrophyService {
 
   public clearCache(): void {
     this.cache.clear();
-  }
-
-  // Database operation with caching
-  public async getGOTYGames(): Promise<GOTYGame[]> {
-    const cacheKey = 'goty_games_all';
-
-    // Try to get from cache first
-    const cached = this.getFromCache<GOTYGame[]>(cacheKey);
-    if (cached) {
-      return cached;
-    }
-
-    // If not in cache, fetch from database
-    const client = new MongoClient(process.env.MONGODB_URI!);
-
-    try {
-      await client.connect();
-      const database = client.db();
-      const gotyCollection = database.collection<GOTYGame>('goty_games');
-
-      const games = await gotyCollection.find({}).sort({ year: -1 }).toArray();
-
-      // Store in cache
-      this.setToCache(cacheKey, games);
-
-      return games;
-    } finally {
-      console.log('Closing database connection');
-    }
-  }
-
-  public async getGOTYGameById(id: string): Promise<GOTYGame | null> {
-    const cacheKey = `goty_game_${id}`;
-
-    const cached = this.getFromCache<GOTYGame>(cacheKey);
-    if (cached) {
-      return cached;
-    }
-
-    const client = new MongoClient(process.env.MONGODB_URI!);
-
-    try {
-      await client.connect();
-      const database = client.db();
-      const gotyCollection = database.collection<GOTYGame>('goty_games');
-
-      const game = await gotyCollection.findOne({ id });
-
-      if (game) {
-        this.setToCache(cacheKey, game);
-      }
-
-      return game;
-    } finally {
-      await client.close();
-    }
-  }
-
-  public async searchGOTYGames(query: string): Promise<GOTYGame[]> {
-    const cacheKey = `goty_search_${query.toLowerCase()}`;
-
-    const cached = this.getFromCache<GOTYGame[]>(cacheKey);
-    if (cached) {
-      return cached;
-    }
-
-    const client = new MongoClient(process.env.MONGODB_URI!);
-
-    try {
-      await client.connect();
-      const database = client.db();
-      const gotyCollection = database.collection<GOTYGame>('goty_games');
-
-      const games = await gotyCollection.find({
-        name: { $regex: query, $options: 'i' }
-      }).toArray();
-
-      this.setToCache(cacheKey, games);
-
-      return games;
-    } finally {
-      await client.close();
-    }
   }
 
   // Method to manually refresh cache if needed
