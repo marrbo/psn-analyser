@@ -26,3 +26,7 @@ npx tsx scripts/check-data-structure.ts 6924eb9f2c09ff2054cfc78f
 
 # Execute o script de migração para corrigir os dados existentes
 npx tsx scripts/migrate-data.ts
+
+## Licença
+
+Este projeto está licenciado sob a licença MIT. Consulte o arquivo [LICENSE](LICENSE) para mais detalhes.
