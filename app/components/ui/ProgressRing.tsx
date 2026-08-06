@@ -82,7 +82,7 @@ export default function ProgressRing({
           className={`transition-all duration-1000 ease-out`}
         />
       </svg>
-      <div className="absolute text-center items-center flex flex-row grid grid-rows-2 line">
+      <div className="absolute text-center items-center flex-row grid grid-rows-2 line">
         {showTrophy ? (
           <div className='w-full flex items-center justify-center'>
             <FaTrophy className={`${trophySize}`}/>

@@ -1,7 +1,9 @@
 import { PontuacaoPlatinasResult } from "@/lib/calcular-platinas";
 import { NormalizedScore, UserPlatinumData } from "@/lib/score.types";
+import { ObjectId } from "mongodb";
 
 export interface GOTYGame {
+  _id?: ObjectId;
   titulo: string;
   ano_premiacao: number;
   desenvolvedora: string;

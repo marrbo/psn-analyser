@@ -337,21 +337,21 @@ export default function Dashboard({ data, onNewAnalysis }: DashboardProps) {
             <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-6 p-6 glass-effect border-2 border-orange-500/20 rounded-2xl">
               {gotyStats.gotyGames.slice(0, 4).map(
                 (gotyGame: any) =>
-                  gotyGame.userGame && (
+                  gotygame?.userGame && (
                     <div
-                      key={gotyGame.userGame.npCommunicationId}
+                      key={gotygame?.usergame?.npCommunicationId}
                       className="rounded-2xl p-2 group hover:bg-gray-950 transition-colors duration-300"
                     >
                       <div className="flex items-center gap-4 glass-effect button-effect p-2">
                         <div className="text-2xl cursor-pointer">
                           <Image
                             src={
-                              gotyGame.userGame.gameTitle?.localizedImageUrl ||
-                              gotyGame.userGame.trophyTitleIconUrl
+                              gotygame?.usergame?.localizedImageUrl ||
+                              gotygame?.usergame?.trophyTitleIconUrl
                             }
                             alt={
-                              gotyGame.userGame.gameTitle?.localizedName ||
-                              gotyGame.titulo
+                              gotygame?.usergame?.localizedName ||
+                              gotygame?.titulo
                             }
                             width={250}
                             height={250}
@@ -360,15 +360,15 @@ export default function Dashboard({ data, onNewAnalysis }: DashboardProps) {
                         </div>
                         <div className="w-full flex flex-col justify-between gap-4 align-top">
                           <h4 className="font-bold text-white text-xl">
-                            {gotyGame.titulo}
+                            {gotygame?.titulo}
                           </h4>
                           <p className="text-sm text-gray-400">
-                            {gotyGame.desenvolvedora}{" "}
+                            {gotygame?.desenvolvedora}{" "}
                             <span className="m-2">•</span>Metacritic:{" "}
-                            {gotyGame.metacritic_score}/100
+                            {gotygame?.metacritic_score}/100
                           </p>
                           <p className="text-lg text-gray-300">
-                            {gotyGame.ano_premiacao}
+                            {gotygame?.ano_premiacao}
                           </p>
                         </div>
                         <div className="col-span-1 flex items-center vertical-center w-20">
@@ -378,13 +378,13 @@ export default function Dashboard({ data, onNewAnalysis }: DashboardProps) {
                             width={200}
                             height={200}
                             className={`${
-                              !gotyGame.userGame.gameTitle?.hasPlatinum &&
-                              gotyGame.userGame.gameTitle
+                              !gotygame?.usergame?.hasPlatinum &&
+                              gotygame?.usergame?.gameTitle
                                 ?.completionPercentage === 100
                                 ? "hidden"
                                 : ""
                             } ${
-                              gotyGame.userGame.gameTitle?.earnedTrophies
+                              gotygame?.usergame?.earnedTrophies
                                 ?.platinum > 0 || 0
                                 ? ""
                                 : "grayscale opacity-50"
@@ -394,18 +394,18 @@ export default function Dashboard({ data, onNewAnalysis }: DashboardProps) {
                         <div className="text-xs text-cyan-400">
                           <ProgressRing
                             progress={
-                              gotyGame.userGame?.gameTitle
+                              gotygame?.userGame?.gameTitle
                                 ?.completionPercentage ||
-                              gotyGame.userGame?.progress ||
+                              gotygame?.userGame?.progress ||
                               0
                             }
                             earned={
-                              gotyGame.userGame.gameTitle?.earnedTrophies ||
-                              gotyGame.userGame.earnedTrophies
+                              gotygame?.usergame?.earnedTrophies ||
+                              gotygame?.usergame?.earnedTrophies
                             }
                             total={
-                              gotyGame.userGame.gameTitle?.totalTrophies ||
-                              gotyGame.userGame.totalTrophies
+                              gotygame?.usergame?.totalTrophies ||
+                              gotygame?.usergame?.totalTrophies
                             }
                             size={90}
                           />
@@ -425,6 +425,85 @@ export default function Dashboard({ data, onNewAnalysis }: DashboardProps) {
           </div>
         )} */}
 
+        {/* Biblioteca de Jogos */}
+        <div className="mb-20 p-4">
+          <h3 className="text-5xl mb-6 text-center font-bold bg-linear-to-r from-gray-900 via-blue-800 to-cyan-300 h-16 bg-clip-text text-transparent drop-shadow-lg">
+            <span>Jogos recentes</span>
+          </h3>
+          <div className="glass-effect rounded-2xl border-blue-800">
+            
+            {/* Preview dos primeiros 6 jogos */}
+            <div className="grid grid-cols-3 md:grid-cols-3 sm:grid-cols-2 lg:grid-cols-6 gap-4 p-6">
+              {games.slice(0, 5).map((game: any) => (
+                <Link
+                  key={game?.npCommunicationId}
+                  href={`/games/${
+                    game?.npCommunicationId
+                  }?accountId=${data.accountId.toLocaleString()}`}
+                  data-tip={game?.localizedName || game?.trophyTitleName} 
+                  className="group tooltip rounded-2xl p-2 group hover:bg-gray-950 transition-colors duration-300"
+                >
+                  <div className="aspect-square w-full relative rounded-lg overflow-hidden glass-effect button-effect">
+                    <Image
+                      src={
+                        game?.imageUrl || game?.localizedImageUrl ||
+                        game?.TrophyTitle?.trophyTitleIconUrl
+                      }
+                      alt={`${game?.localizedName || game?.trophyTitleName} - ${game?.completionPercentage || 0}%`}
+                      width={200}
+                      height={200}
+                      className="w-full h-full grayscale-80 group-hover:grayscale-0 transition-transform duration-300"
+                    />
+                    {/* <div className="absolute top-0 left-0 right-0 bg-linear-to-b from-black to-gray-900/10 uppercase text-shadow-xs p-2 items-center text-center">
+                      <div className="text-white text-sm font-semibold truncate">
+                        {game?.localizedName || game?.titulo}
+                      </div>
+                    </div> */}
+                    <div className="absolute bottom-0 left-0 right-0 p-2 bg-linear-to-t from-black/80 to-transparent items-center text-center">
+                      {/* <span className="text-right absolute bottom-2 right-2 bg-gray-900/70 rounded-full px-2 py-1 text-xs">{game?.completionPercentage || game?.progress || 0}%</span> */}
+
+                      <span className="text-right absolute bottom-0 right-1">
+                        <ProgressRing
+                          progress={
+                            game?.completionPercentage ||
+                            game?.progress ||
+                            0
+                          }
+                          earned={game?.earnedTrophies}
+                          total={game?.totalTrophies}
+                          fillColor="white/10"
+                          textSize={8}
+                          size={80}
+                        />
+                      </span>
+                      <div className="text-center rounded-full px-2 py-1 w-12 text-xs text-white font-semibold bg-gray-900/70">
+                        <span className="text-center">
+                          {game?.trophyTitlePlatform}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+              
+                <Link
+                  href={`/games?analysisId=${data._id}&accountId=${data.accountId}`}
+                  data-tip="Todos os Jogos" 
+                  className="tooltip group rounded-2xl p-2 group hover:bg-gray-950 transition-colors duration-300 aspect-square"
+                >
+                  <div className="rounded-lg h-full w-full items-center text-center text-2xl flex flex-col justify-center gap-4 hover:text-yellow-600 transition-colors duration-300 glass-effect button-effect grayscale group-hover:grayscale-0">
+                    <p>🎮</p> 
+                    <p>Todos ...</p>
+                    <p className="text-blue-200 text-lg">
+                      ({(games.length || 0).toLocaleString("pt-BR")})
+                    </p>
+                  </div>
+                </Link>
+            </div>
+          </div>
+
+        </div>
+        
 
         {/* Informações de Debug (apenas desenvolvimento) */}
         {process.env.NODE_ENV === "development" && (
