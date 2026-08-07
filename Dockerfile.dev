@@ -1,9 +1,12 @@
-FROM node:25-alpine3.22
+FROM node:22-bookworm
 
 WORKDIR /app
 
-# Instala dependências de sistema necessárias
-RUN apk add --no-cache git openssh-client
+# Instala dependências de sistema
+RUN apt-get update && apt-get install -y git openssh-client
+
+# Instala o Next.js globalmente no container
+RUN npm install -g next
 
 # Desabilita assinatura de commits via Git (evita o erro "signature helper")
 RUN git config --global commit.gpgsign false \
