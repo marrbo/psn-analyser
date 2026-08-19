@@ -122,8 +122,8 @@ export default function BackgroundImage() {
   ]);
 
   // Usar imagens do contexto em vez das calculadas localmente
-  const backgroundImage =
-    contextBgFullImage || calculatedImages.backgroundImage;
+  // const backgroundImage =
+  //   contextBgFullImage || calculatedImages.backgroundImage;
 
   const title = `${focusGame?.localizedName || focusGame?.trophyTitle?.trophyTitleName} - ${focusGame?.trophyTitle.trophyTitlePlatform}`;
 
@@ -133,7 +133,7 @@ export default function BackgroundImage() {
     backgroundPosition: "center center",
     backgroundRepeat: "no-repeat",
     backgroundAttachment: "fixed",
-    filter: "saturate(130%) brightness(70%)",
+    filter: "saturate(130%) brightness(90%)",
     width: "100vw",
     height: "100vh",
   };

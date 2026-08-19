@@ -62,7 +62,7 @@
   }
 
   .glass-apple-card {
-    @apply border-2 border-gray-700 rounded-2xl p-4 shadow-2xs shadow-black/50 bg-blend-multiply bg-white/20 transition-all duration-300;
+    @apply border-2 border-gray-700 rounded-2xl p-4 shadow-2xs shadow-black/30 bg-blend-multiply bg-white/20 transition-all duration-300;
   }
   
   .glass-apple-card:hover {
@@ -88,7 +88,7 @@
 @layer utilities {
   /* Classes Glass Apple corrigidas para serem utilitários válidos */
   .glass-apple, .glass-effect, .glass-apple-dark {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.4);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.1);
